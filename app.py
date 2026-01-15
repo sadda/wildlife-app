@@ -13,6 +13,7 @@ ANS_POS = "same"
 ANS_NEG = "diff"
 ANS_UNK = "unknown"
 ROOT = "data/TurtlesOfSMSRC"
+CANVAS_SIZE = 400
 
 class App:
     def __init__(self, root):
@@ -55,8 +56,8 @@ class App:
         self.counter_label = ttk.Label(self.root, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold"))
         self.counter_label.pack(pady=(5, 0))
 
-        self.canvas_l = tk.Canvas(self.img_frame, width=400, height=400)
-        self.canvas_r = tk.Canvas(self.img_frame, width=400, height=400)
+        self.canvas_l = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
+        self.canvas_r = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
         self.canvas_l.grid(row=0, column=0, padx=5)
         self.canvas_r.grid(row=0, column=1, padx=5)
 
@@ -73,6 +74,12 @@ class App:
     def _bind_keys(self):
         for _, key, action, _, _ in self._actions():
             self.root.bind(key, lambda e, a=action: a())
+
+    def _fit_to_canvas(self, img):
+        w, h = img.size
+        scale = min(CANVAS_SIZE / w, CANVAS_SIZE / h)
+        new_size = (int(w * scale), int(h * scale))
+        return img.resize(new_size, Image.LANCZOS)
 
     def on_same(self, event=None):
         self.answer(ANS_POS)
@@ -139,8 +146,8 @@ class App:
             self.next_prev()
             return
 
-        self.tk_img1 = ImageTk.PhotoImage(img1)
-        self.tk_img2 = ImageTk.PhotoImage(img2)
+        self.tk_img1 = ImageTk.PhotoImage(self._fit_to_canvas(img1))
+        self.tk_img2 = ImageTk.PhotoImage(self._fit_to_canvas(img2))
 
         self.canvas_l.create_image(200, 200, image=self.tk_img1)
         self.canvas_r.create_image(200, 200, image=self.tk_img2)
