@@ -42,7 +42,6 @@ class App:
             ("Same (Q)", "q", self.on_same, 0, 0),
             ("Different (W)", "w", self.on_diff, 0, 1),
             ("Unknown (E)", "e", self.on_unknown, 0, 2),
-            ("Show heads (R)", "r", self.show_heads, 0, 3),
             ("Previous (A)", "a", self.prev, 1, 0),
             ("Next (S)", "s", self.next, 1, 1),
         ]
@@ -82,9 +81,6 @@ class App:
 
     def on_unknown(self, event=None):
         self.answer(ANS_UNK)
-
-    def on_heads(self, event=None):
-        self.show_heads()
 
     def on_prev(self, event=None):
         self.prev()
@@ -148,10 +144,6 @@ class App:
         self.answers.loc[self.idx, "answer"] = answer
         self.answers.to_csv(ANS_CSV, index=False)
         self.next()
-
-    def show_heads(self):
-        # TODO: finish
-        pass
 
     def next(self):
         self.increase = True
