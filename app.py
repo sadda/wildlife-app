@@ -18,6 +18,7 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Image Comparator")
+        # TODO: handle better case when answers do not correspond to data
         # TODO: the segmentation.csv file must be identical
         self.dataset = TurtlesOfSMSRC(ROOT, load_segmentation=True, img_load='bbox')
 
