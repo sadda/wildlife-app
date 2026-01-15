@@ -114,6 +114,14 @@ class App:
         ans = self.answers.loc[idx, 'answer']
         return (ans.isin([ANS_NEG, ANS_POS])).any()
 
+    def _skip_plotting(self, identity1, identity2):
+        return (
+            self.increase
+            and identity1 != "unknown"
+            and identity2 != "unknown"
+            and self._answer_exists(identity1, identity2)
+        )
+
     def next_prev(self):
         if self.increase:
             self.next()
@@ -137,7 +145,7 @@ class App:
 
         row = self.df.iloc[self.idx]
 
-        if self.increase and self._answer_exists(row['identity1'], row['identity2']):
+        if self._skip_plotting(row['identity1'], row['identity2']):
             self.next_prev()
             return
         
