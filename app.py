@@ -3,14 +3,19 @@ from tkinter import ttk
 import pandas as pd
 from PIL import Image, ImageTk
 import os
+from wildlife_datasets.datasets import TurtlesOfSMSRC
+from utils import get_index
 
 DATA_CSV = "data.csv"
 ANS_CSV = "answers.csv"
+ROOT = "data/TurtlesOfSMSRC"
 
 class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Image Comparator")
+        # TODO: the segmentation.csv file must be identical
+        self.dataset = TurtlesOfSMSRC(ROOT, load_segmentation=True, img_load='bbox')
 
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
@@ -77,10 +82,19 @@ class App:
     def on_next(self, event=None):
         self.next()
 
+    def _load_image(self, image_id, identity=None):        
+        j = get_index(self.dataset, image_id)
+        if j is None:
+            return None
+        if identity is not None:
+            if self.dataset.metadata['identity'].iloc[j] != identity:
+                print(self.dataset.metadata['identity'].iloc[j], identity)
+                raise ValueError('Identity is different. Segmentation.csv is probably wrong')
+        return self.dataset[j]
+
     def load_images(self, row):
-        # TODO: finish
-        img1 = Image.new("RGB", (100*(row.name+1), 200), "gray")
-        img2 = Image.new("RGB", (200, 300), "darkgray")
+        img1 = self._load_image(row['image_id1'], identity=row['identity1'])
+        img2 = self._load_image(row['image_id2'], identity=row['identity2'])
         return img1, img2
 
     def load_row(self):
@@ -89,7 +103,7 @@ class App:
 
         row = self.df.iloc[self.idx]
         img1, img2 = self.load_images(row)
-        
+
         if img1 is None or img2 is None:
             self.next()
             return
