@@ -51,6 +51,10 @@ class App:
         self.img_frame = ttk.Frame(self.root)
         self.img_frame.pack(padx=10, pady=10)
 
+        self.counter_var = tk.StringVar()
+        self.counter_label = ttk.Label(self.root, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold"))
+        self.counter_label.pack(pady=(5, 0))
+
         self.canvas_l = tk.Canvas(self.img_frame, width=400, height=400)
         self.canvas_r = tk.Canvas(self.img_frame, width=400, height=400)
         self.canvas_l.grid(row=0, column=0, padx=5)
@@ -117,6 +121,8 @@ class App:
         return img1, img2
 
     def load_row(self):
+        self.counter_var.set(f'Image {self.idx + 1}/{len(self.df)}')
+
         self.canvas_l.delete("all")
         self.canvas_r.delete("all")
 
