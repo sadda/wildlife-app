@@ -117,6 +117,10 @@ class App:
         return img1, img2
 
     def load_row(self):
+        if not (0 <= self.idx < len(self.df)):
+            self.root.destroy()
+            return
+
         self.counter_var.set(f'Image {self.idx + 1}/{len(self.df)}')
 
         self.canvas_l.delete("all")
@@ -147,19 +151,13 @@ class App:
 
     def next(self):
         self.increase = True
-        if self.idx < len(self.df) - 1:
-            self.idx += 1
-            self.load_row()
-        else:
-            self.root.destroy()
+        self.idx += 1
+        self.load_row()
 
     def prev(self):
         self.increase = False
-        if self.idx > 0:
-            self.idx -= 1
-            self.load_row()
-        else:
-            self.root.destroy()
+        self.idx -= 1
+        self.load_row()
 
 if __name__ == "__main__":
     root = tk.Tk()
