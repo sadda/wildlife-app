@@ -28,6 +28,7 @@ class App:
         
         self.idx = 0
         self.increase = True
+        self.history = [-1]
 
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
@@ -136,7 +137,7 @@ class App:
 
         row = self.df.iloc[self.idx]
 
-        if self._answer_exists(row['identity1'], row['identity2']):
+        if self.increase and self._answer_exists(row['identity1'], row['identity2']):
             self.next_prev()
             return
         
@@ -145,6 +146,8 @@ class App:
         if img1 is None or img2 is None:
             self.next_prev()
             return
+
+        self.history.append(self.idx)
 
         self.tk_img1 = ImageTk.PhotoImage(self._fit_to_canvas(img1))
         self.tk_img2 = ImageTk.PhotoImage(self._fit_to_canvas(img2))
@@ -164,7 +167,8 @@ class App:
 
     def prev(self):
         self.increase = False
-        self.idx -= 1
+        self.idx = self.history[-2]
+        self.history = self.history[:-2] # Delete the current. The previous will be added later
         self.load_row()
 
 if __name__ == "__main__":
