@@ -17,6 +17,15 @@ class App:
         self.root = root
         self.root.title("Image Comparator")
         self.dataset = dataset
+        
+        # Check whether the dataset was downloaded
+        if not dataset.is_downloaded():
+            self.download()
+            if not dataset.is_downloaded():
+                self.root.destroy()
+                return
+        
+        # Load the dataset
         dataset.load()
         # TODO: handle better case when answers do not correspond to data
 

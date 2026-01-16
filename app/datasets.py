@@ -14,6 +14,13 @@ class WildlifeDataset:
     def metadata(self):
         return self.dataset.metadata
     
+    def is_downloaded(self):
+        try:
+            self.dataset_wd(self.root)
+            return True
+        except Exception:
+            return False
+
     def download(self):
         self.dataset_wd.get_data(self.root)
 
