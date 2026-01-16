@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
@@ -47,6 +47,7 @@ class App:
             ("Unknown (E)", "e", self.on_unknown, 0, 2),
             ("Previous (A)", "a", self.prev, 1, 0),
             ("Next (S)", "s", self.next, 1, 1),
+            ("Download", None, self.download, 2, 0),
         ]
 
     def _build_ui(self):
@@ -96,6 +97,14 @@ class App:
 
     def on_next(self, event=None):
         self.next()
+
+    def download(self, event=None):
+        confirm = messagebox.askyesno(
+            title="Download dataset",
+            message="Download may take tens of minutes. Download the dataset now?"
+        )
+        if confirm:
+            self.dataset = TurtlesOfSMSRC.get_data(ROOT)
 
     def _load_image(self, image_id, identity=None):        
         j = get_index(self.dataset, image_id)
