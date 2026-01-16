@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import os
-from .utils import get_index
 
 DATA_CSV = "data.csv"
 ANS_CSV = "answers.csv"
@@ -17,8 +16,9 @@ class App:
     def __init__(self, root, dataset):
         self.root = root
         self.root.title("Image Comparator")
+        self.dataset = dataset
+        dataset.load()
         # TODO: handle better case when answers do not correspond to data
-        self.dataset = dataset.load_dataset()
 
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
@@ -101,10 +101,10 @@ class App:
             message="Download may take tens of minutes. Download the dataset now?"
         )
         if confirm:
-            self.dataset = DATASET.download()
+            self.dataset.download()
 
     def _load_image(self, image_id, identity=None):        
-        j = get_index(self.dataset, image_id)
+        j = self.dataset.get_index(image_id)
         if j is None:
             return None
         if identity is not None:
