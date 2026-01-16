@@ -121,7 +121,7 @@ class App:
     def download_dataset(self, event=None):
         confirm = messagebox.askyesno(
             title="Download dataset",
-            message="Download may take tens of minutes. Download the dataset now? Do not close the app please."
+            message="Download may take tens of minutes. Download the dataset now? Do not close the app please. It will close automatically."
         )
         if confirm:
             self.dataset.download_dataset()
@@ -130,7 +130,7 @@ class App:
     def download_segmentation(self):
         confirm = messagebox.askyesno(
             title="Download segmentation",
-            message="Download the segmentation file now? Do not close the app please."
+            message="Download the segmentation file now? Do not close the app please. It will close automatically."
         )
         if confirm:
             self.dataset.download_segmentation()
