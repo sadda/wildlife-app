@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import os
-from .datasets import TurtlesOfSMSRC
 from .utils import get_index
 
 DATA_CSV = "data.csv"
