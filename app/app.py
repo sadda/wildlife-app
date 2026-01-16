@@ -5,7 +5,7 @@ import pandas as pd
 from PIL import Image, ImageTk
 import os
 
-DATA_CSV = "data.csv"
+DATA_CSV = "verification_data.csv"
 ANS_CSV = "answers.csv"
 ANS_POS = "same"
 ANS_NEG = "diff"
@@ -27,8 +27,10 @@ class App:
         
         # Load the dataset
         dataset.load()
-        # TODO: handle better case when answers do not correspond to data
-
+        
+        # Load the verification data
+        if not os.path.exists(DATA_CSV):
+            dataset.download_verification(DATA_CSV)
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
         
@@ -41,6 +43,8 @@ class App:
         else:
             self.answers = self.df.copy()
             self.answers['answer'] = None
+
+        # TODO: handle better case when answers do not correspond to data
 
         self._build_ui()
         self._bind_keys()
@@ -112,6 +116,9 @@ class App:
         if confirm:
             self.dataset.download_dataset()
 
+    def download_verification(self):
+        self.dataset.download_verification(DATA_CSV)
+    
     def _load_image(self, image_id, identity=None):        
         j = self.dataset.get_index(image_id)
         if j is None:

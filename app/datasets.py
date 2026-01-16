@@ -27,6 +27,9 @@ class WildlifeDataset:
     def download_segmentation(self):
         utils.download_file(self.segmentation_url, os.path.join(self.root, 'segmentation.csv'))
 
+    def download_verification(self, name):
+        utils.download_file(self.verification_url, name)
+
     def get_index(self, i):
         return utils.get_index(self.dataset, i)
 
@@ -34,6 +37,7 @@ class WildlifeDataset:
 class TurtlesOfSMSRC(WildlifeDataset):
     dataset_wd = wildlife_datasets.datasets.TurtlesOfSMSRC
     segmentation_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/segmentation.csv'
+    verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
     def load(self):
         # Check whether the class loads without segmentations
