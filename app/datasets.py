@@ -21,8 +21,11 @@ class WildlifeDataset:
         except Exception:
             return False
 
-    def download(self):
+    def download_dataset(self):
         self.dataset_wd.get_data(self.root)
+
+    def download_segmentation(self):
+        utils.download_file(self.segmentation_url, os.path.join(self.root, 'segmentation.csv'))
 
     def get_index(self, i):
         return utils.get_index(self.dataset, i)
@@ -30,6 +33,7 @@ class WildlifeDataset:
 
 class TurtlesOfSMSRC(WildlifeDataset):
     dataset_wd = wildlife_datasets.datasets.TurtlesOfSMSRC
+    segmentation_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/segmentation.csv'
 
     def load(self):
         # Check whether the class loads without segmentations
@@ -37,8 +41,7 @@ class TurtlesOfSMSRC(WildlifeDataset):
         # Check whether segmentations are present
         segmentation_csv = os.path.join(self.root, 'segmentation.csv')
         if not os.path.exists(segmentation_csv):
-            # TODO: add download
-            raise ValueError('segmentation.csv not found')
+            self.download_segmentation()
         # Load the class with segmentations
         # TODO: the segmentation.csv file must be identical
         self.dataset = self.dataset_wd(self.root, load_segmentation=True, img_load='bbox')

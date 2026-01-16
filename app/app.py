@@ -110,7 +110,7 @@ class App:
             message="Download may take tens of minutes. Download the dataset now?"
         )
         if confirm:
-            self.dataset.download()
+            self.dataset.download_dataset()
 
     def _load_image(self, image_id, identity=None):        
         j = self.dataset.get_index(image_id)
