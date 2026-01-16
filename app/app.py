@@ -33,21 +33,30 @@ class App:
             dataset.download_verification(DATA_CSV)
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
-        
-        self.idx = 0
-        self.increase = True
-        self.history = [-1]
 
+        # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
         else:
             self.answers = self.df.copy()
             self.answers['answer'] = None
 
-        # TODO: handle better case when answers do not correspond to data
+        # Verify the answer data
+        columns1 = self.answers.columns.difference({'answer'})
+        columns2 = self.df.columns
+        df1 = self.answers[columns1]
+        df2 = self.df[columns1]
+        if set(columns1) != set(columns2) or not df1[columns1].equals(df2[columns1]):
+            raise ValueError(f'File {ANS_CSV} has wrong format. It may help to delete it.')
 
+        # Set the variables
+        self.idx = 0
+        self.increase = True
+        self.history = [-1]
         self._build_ui()
         self._bind_keys()
+
+        # Load the first couple of images
         self.load_row()
 
     def _actions(self):
