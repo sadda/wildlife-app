@@ -11,7 +11,7 @@ pip install -r requirements.txt
 Run the app by
 
 ```
-python app.py
+python run.py
 ```
 
 It will start downloading the dataset, which may take half an hour. Using the app is easy (use keyboard shortcuts). The answers are saved into the file `answers.csv`.
