@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import os
@@ -95,7 +94,8 @@ class App:
 
     def _bind_keys(self):
         for _, key, action, _, _ in self._actions():
-            self.root.bind(key, lambda e, a=action: a())
+            if key is not None:
+                self.root.bind(key, lambda e, a=action: a())
 
     def _fit_to_canvas(self, img):
         w, h = img.size
