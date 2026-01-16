@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import os
-from datasetss import TurtlesOfSMSRC
-from utils import get_index
+from .datasets import TurtlesOfSMSRC
+from .utils import get_index
 
 DATA_CSV = "data.csv"
 ANS_CSV = "answers.csv"
@@ -13,15 +13,13 @@ ANS_POS = "same"
 ANS_NEG = "diff"
 ANS_UNK = "unknown"
 CANVAS_SIZE = 400
-ROOT = "data/TurtlesOfSMSRC"
-DATASET = TurtlesOfSMSRC(ROOT)
 
 class App:
-    def __init__(self, root):
+    def __init__(self, root, dataset):
         self.root = root
         self.root.title("Image Comparator")
         # TODO: handle better case when answers do not correspond to data
-        self.dataset = DATASET.load_dataset()
+        self.dataset = dataset.load_dataset()
 
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
@@ -187,8 +185,3 @@ class App:
         self.idx = self.history[-2]
         self.history = self.history[:-2] # Delete the current. The previous will be added later
         self.load_row()
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    App(root)
-    root.mainloop()
