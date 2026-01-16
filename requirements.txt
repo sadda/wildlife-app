@@ -1,0 +1,5 @@
+numpy
+pandas
+requests
+Pillow
+wildlife-datasets @ git+https://github.com/WildlifeDatasets/wildlife-datasets.git@develop
