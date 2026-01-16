@@ -11,7 +11,6 @@ def get_index(dataset, image_id):
         return None
 
 def download_file(url, output_path):
-    print(url)
     r = requests.get(url, allow_redirects=True)
     r.raise_for_status()
     with open(output_path, "wb") as f:

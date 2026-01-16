@@ -47,5 +47,4 @@ class TurtlesOfSMSRC(WildlifeDataset):
         if not os.path.exists(segmentation_csv):
             self.download_segmentation()
         # Load the class with segmentations
-        # TODO: the segmentation.csv file must be identical
         self.dataset = self.dataset_wd(self.root, load_segmentation=True, img_load='bbox')

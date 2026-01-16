@@ -20,7 +20,7 @@ class App:
         
         # Check whether the dataset was downloaded
         if not dataset.is_downloaded():
-            self.download()
+            self.download_dataset()
             if not dataset.is_downloaded():
                 self.root.destroy()
                 return
@@ -66,7 +66,8 @@ class App:
             ("Unknown (E)", "e", self.on_unknown, 0, 2),
             ("Previous (A)", "a", self.prev, 1, 0),
             ("Next (S)", "s", self.next, 1, 1),
-            ("Download", None, self.download, 2, 0),
+            ("Download dataset", None, self.download_dataset, 2, 0),
+            ("Download segmentation", None, self.download_segmentation, 2, 1),
         ]
 
     def _build_ui(self):
@@ -117,17 +118,31 @@ class App:
     def on_next(self, event=None):
         self.next()
 
-    def download(self, event=None):
+    def download_dataset(self, event=None):
         confirm = messagebox.askyesno(
             title="Download dataset",
-            message="Download may take tens of minutes. Download the dataset now?"
+            message="Download may take tens of minutes. Download the dataset now? Do not close the app please."
         )
         if confirm:
             self.dataset.download_dataset()
+            self.close_app()
+
+    def download_segmentation(self):
+        confirm = messagebox.askyesno(
+            title="Download segmentation",
+            message="Download the segmentation file now? Do not close the app please."
+        )
+        if confirm:
+            self.dataset.download_segmentation()
+            self.close_app()
 
     def download_verification(self):
         self.dataset.download_verification(DATA_CSV)
-    
+
+    def close_app(self, message="The application will now close."):
+        messagebox.showinfo("Exit", message)
+        self.root.destroy()
+
     def _load_image(self, image_id, identity=None):        
         j = self.dataset.get_index(image_id)
         if j is None:
