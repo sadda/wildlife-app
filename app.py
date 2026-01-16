@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import os
-from wildlife_datasets.datasets import TurtlesOfSMSRC
+from datasetss import TurtlesOfSMSRC
 from utils import get_index
 
 DATA_CSV = "data.csv"
@@ -12,16 +12,16 @@ ANS_CSV = "answers.csv"
 ANS_POS = "same"
 ANS_NEG = "diff"
 ANS_UNK = "unknown"
-ROOT = "data/TurtlesOfSMSRC"
 CANVAS_SIZE = 400
+ROOT = "data/TurtlesOfSMSRC"
+DATASET = TurtlesOfSMSRC(ROOT)
 
 class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Image Comparator")
         # TODO: handle better case when answers do not correspond to data
-        # TODO: the segmentation.csv file must be identical
-        self.dataset = TurtlesOfSMSRC(ROOT, load_segmentation=True, img_load='bbox')
+        self.dataset = DATASET.load_dataset()
 
         self.df = pd.read_csv(DATA_CSV)
         assert isinstance(self.df.index, pd.RangeIndex)
@@ -104,7 +104,7 @@ class App:
             message="Download may take tens of minutes. Download the dataset now?"
         )
         if confirm:
-            self.dataset = TurtlesOfSMSRC.get_data(ROOT)
+            self.dataset = DATASET.download()
 
     def _load_image(self, image_id, identity=None):        
         j = get_index(self.dataset, image_id)
