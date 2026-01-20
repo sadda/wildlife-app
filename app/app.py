@@ -243,6 +243,7 @@ class App:
         self.load_row()
 
     def prev(self):
-        self.increase = False
-        self.idx -= 1
-        self.load_row()
+        if self.idx > 0:
+            self.increase = False
+            self.idx -= 1
+            self.load_row()
