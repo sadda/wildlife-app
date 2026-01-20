@@ -24,8 +24,8 @@ class WildlifeDataset:
     def download_dataset(self):
         self.dataset_wd.get_data(self.root)
 
-    def download_segmentation(self):
-        utils.download_file(self.segmentation_url, os.path.join(self.root, 'segmentation.csv'))
+    def download_segmentation(self, path):
+        utils.download_file(self.segmentation_url, path)
 
     def download_verification(self, name):
         utils.download_file(self.verification_url, name)

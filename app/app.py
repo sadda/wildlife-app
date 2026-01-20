@@ -2,7 +2,10 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import pandas as pd
 from PIL import Image, ImageTk
+import filecmp
 import os
+import shutil
+import tempfile
 
 DATA_CSV = "verification_data.csv"
 ANS_CSV = "answers.csv"
@@ -136,9 +139,18 @@ class App:
             title="Download segmentation",
             message="Download the segmentation file now? Do not close the app please. It will close automatically."
         )
-        if confirm:
-            self.dataset.download_segmentation()
-            self.close_app()
+        if not confirm:
+            return 
+        
+        path_new = os.path.join(self.dataset.root, 'segmentation.csv')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path_tmp = os.path.join(tmpdir, 'segmentation.csv')
+            self.dataset.download_segmentation(path_tmp)
+            if os.path.exists(path_new) and filecmp.cmp(path_new, path_tmp, shallow=False):
+                messagebox.showinfo('Info', 'Segmentation file is already the newest one.')
+            else:
+                shutil.move(path_tmp, path_new)
+                self.close_app(message='Segmentation file downloaded. The application will now close.')
 
     def download_verification(self):
         self.dataset.download_verification(DATA_CSV)
