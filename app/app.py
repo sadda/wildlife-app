@@ -10,7 +10,7 @@ DATA_CSV = "verification_data.csv"
 SEGMENTATION_CSV = 'segmentation.csv'
 ANS_CSV = "answers.csv"
 ANS_POS = "same"
-ANS_NEG = "diff"
+ANS_NEG = "different"
 ANS_UNK = "unknown"
 CANVAS_SIZE = 400
 
