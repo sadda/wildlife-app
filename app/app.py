@@ -208,7 +208,11 @@ class App:
             self.root.destroy()
             return
 
-        self.counter_var.set(f'Image {self.idx + 1}/{len(self.df)}')
+        text = f'Image {self.idx + 1}/{len(self.df)}'
+        answer = self.answers.iloc[self.idx]['answer']
+        if not pd.isnull(answer):
+            text = f'{text} - {answer.upper()}'
+        self.counter_var.set(text)
 
         self.canvas_l.delete("all")
         self.canvas_r.delete("all")
