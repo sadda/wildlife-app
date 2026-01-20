@@ -169,6 +169,7 @@ class App:
         j = self.dataset.get_index(image_id)
         if j is None:
             return None
+        # TODO: this is not supposed to be here
         if identity is not None:
             if self.dataset.metadata['identity'].iloc[j] != identity:
                 print(self.dataset.metadata['identity'].iloc[j], identity)
@@ -182,7 +183,9 @@ class App:
         ans = self.answers.loc[idx, 'answer']
         return (ans.isin([ANS_NEG, ANS_POS])).any()
 
-    def _skip_plotting(self, identity1, identity2):
+    def _skip_plotting(self):
+        identity1 = self.df.iloc[self.idx]['identity1']
+        identity2 = self.df.iloc[self.idx]['identity2']
         return (
             self.increase
             and identity1 != "unknown"
@@ -196,7 +199,8 @@ class App:
         else:
             self.prev()
 
-    def load_images(self, row):
+    def load_images(self):
+        row = self.df.iloc[self.idx]
         img1 = self._load_image(row['image_id1'], identity=row['identity1'])
         img2 = self._load_image(row['image_id2'], identity=row['identity2'])
         return img1, img2
@@ -208,13 +212,11 @@ class App:
             self.root.destroy()
             return
 
-        row = self.df.iloc[self.idx]
-
-        if self._skip_plotting(row['identity1'], row['identity2']):
+        if self._skip_plotting():
             self.next_prev()
             return
         
-        img1, img2 = self.load_images(row)
+        img1, img2 = self.load_images()
 
         if img1 is None or img2 is None:
             self.next_prev()
