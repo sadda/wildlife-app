@@ -165,15 +165,10 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
-    def _load_image(self, image_id, identity=None):        
+    def _load_image(self, image_id):        
         j = self.dataset.get_index(image_id)
         if j is None:
             return None
-        # TODO: this is not supposed to be here
-        if identity is not None:
-            if self.dataset.metadata['identity'].iloc[j] != identity:
-                print(self.dataset.metadata['identity'].iloc[j], identity)
-                raise ValueError('Identity is different. Segmentation.csv is probably wrong')
         return self.dataset[j]
 
     def _answer_exists(self, identity1, identity2):
@@ -201,8 +196,8 @@ class App:
 
     def load_images(self):
         row = self.df.iloc[self.idx]
-        img1 = self._load_image(row['image_id1'], identity=row['identity1'])
-        img2 = self._load_image(row['image_id2'], identity=row['identity2'])
+        img1 = self._load_image(row['image_id1'])
+        img2 = self._load_image(row['image_id2'])
         return img1, img2
 
     def load_row(self):
