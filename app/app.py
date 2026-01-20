@@ -55,7 +55,6 @@ class App:
         # Set the variables
         self.idx = 0
         self.increase = True
-        self.history = [-1]
         self._build_ui()
         self._bind_keys()
 
@@ -181,8 +180,9 @@ class App:
     def _skip_plotting(self):
         identity1 = self.df.iloc[self.idx]['identity1']
         identity2 = self.df.iloc[self.idx]['identity2']
+        is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
-            self.increase
+            is_empty if self.started else True
             and identity1 != "unknown"
             and identity2 != "unknown"
             and self._answer_exists(identity1, identity2)
@@ -226,8 +226,6 @@ class App:
         self.canvas_l.delete("all")
         self.canvas_r.delete("all")
 
-        self.history.append(self.idx)
-
         self.tk_img1 = ImageTk.PhotoImage(self._fit_to_canvas(img1))
         self.tk_img2 = ImageTk.PhotoImage(self._fit_to_canvas(img2))
 
@@ -246,6 +244,5 @@ class App:
 
     def prev(self):
         self.increase = False
-        self.idx = self.history[-2]
-        self.history = self.history[:-2] # Delete the current. The previous will be added later
+        self.idx -= 1
         self.load_row()
