@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
+import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 import filecmp
@@ -73,6 +74,7 @@ class App:
             ("Unknown (E)", "e", self.on_unknown, 0, 2),
             ("Previous (A)", "a", self.on_prev, 1, 0),
             ("Next (S)", "s", self.on_next, 1, 1),
+            ("Next body part", None, self.next_body_part, 1, 2),
             ("Download dataset", None, self.download_dataset, 2, 0),
             ("Download segmentation", None, self.download_segmentation, 2, 1),
             ("Download verification", None, self.download_verification, 2, 2),
@@ -153,6 +155,15 @@ class App:
         if confirm:
             self.dataset.download_dataset()
             self.close_app()
+
+    def next_body_part(self):
+        unique_parts = self.df['matching_part'].unique()
+        i = np.where(self.df.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
+        i = np.mod(i + 1, len(unique_parts))
+        self.idx = np.where(unique_parts[i] == self.df['matching_part'])[0][0] - 1
+        self.next()
+        # TODO: add download of segmentation on the start?
+        # TODO: handle if internet not connected
 
     def _download_file(self, path_new, download_fun):
         confirm = messagebox.askyesno(
