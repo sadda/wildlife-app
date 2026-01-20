@@ -208,15 +208,6 @@ class App:
             self.root.destroy()
             return
 
-        text = f'Image {self.idx + 1}/{len(self.df)}'
-        answer = self.answers.iloc[self.idx]['answer']
-        if not pd.isnull(answer):
-            text = f'{text} - {answer.upper()}'
-        self.counter_var.set(text)
-
-        self.canvas_l.delete("all")
-        self.canvas_r.delete("all")
-
         row = self.df.iloc[self.idx]
 
         if self._skip_plotting(row['identity1'], row['identity2']):
@@ -228,6 +219,15 @@ class App:
         if img1 is None or img2 is None:
             self.next_prev()
             return
+
+        text = f'Image {self.idx + 1}/{len(self.df)}'
+        answer = self.answers.iloc[self.idx]['answer']
+        if not pd.isnull(answer):
+            text = f'{text} - {answer.upper()}'
+        self.counter_var.set(text)
+
+        self.canvas_l.delete("all")
+        self.canvas_r.delete("all")
 
         self.history.append(self.idx)
 
