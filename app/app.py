@@ -4,10 +4,10 @@ import pandas as pd
 from PIL import Image, ImageTk
 import filecmp
 import os
-import shutil
 import tempfile
 
 DATA_CSV = "verification_data.csv"
+SEGMENTATION_CSV = 'segmentation.csv'
 ANS_CSV = "answers.csv"
 ANS_POS = "same"
 ANS_NEG = "diff"
@@ -74,6 +74,7 @@ class App:
             ("Next (S)", "s", self.next, 1, 1),
             ("Download dataset", None, self.download_dataset, 2, 0),
             ("Download segmentation", None, self.download_segmentation, 2, 1),
+            ("Download verification", None, self.download_verification, 2, 2),
         ]
 
     def _build_ui(self):
@@ -134,26 +135,31 @@ class App:
             self.dataset.download_dataset()
             self.close_app()
 
-    def download_segmentation(self):
+    def _download_file(self, path_new, download_fun):
         confirm = messagebox.askyesno(
-            title="Download segmentation",
-            message="Download the segmentation file now? Do not close the app please. It will close automatically."
+            title=f"Download",
+            message=f"Download the file now? Do not close the app please. It will close automatically."
         )
         if not confirm:
             return 
         
-        path_new = os.path.join(self.dataset.root, 'segmentation.csv')
+        base_name = os.path.basename(path_new)
         with tempfile.TemporaryDirectory() as tmpdir:
-            path_tmp = os.path.join(tmpdir, 'segmentation.csv')
-            self.dataset.download_segmentation(path_tmp)
+            path_tmp = os.path.join(tmpdir, base_name)
+            download_fun(path_tmp)
+            if not os.path.exists(path_tmp):
+                raise RuntimeError(f'Download failed for {base_name}')
             if os.path.exists(path_new) and filecmp.cmp(path_new, path_tmp, shallow=False):
-                messagebox.showinfo('Info', 'Segmentation file is already the newest one.')
+                messagebox.showinfo('Info', f'The file is already the newest one.')
             else:
-                shutil.move(path_tmp, path_new)
-                self.close_app(message='Segmentation file downloaded. The application will now close.')
+                os.replace(path_tmp, path_new)
+                self.close_app(message=f'The file has been downloaded. The application will now close.')
+
+    def download_segmentation(self):
+        self._download_file(os.path.join(self.dataset.root, SEGMENTATION_CSV), self.dataset.download_segmentation)
 
     def download_verification(self):
-        self.dataset.download_verification(DATA_CSV)
+        self._download_file(DATA_CSV, self.dataset.download_verification)
 
     def close_app(self, message="The application will now close."):
         messagebox.showinfo("Exit", message)
