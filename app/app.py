@@ -182,7 +182,7 @@ class App:
         identity2 = self.df.iloc[self.idx]['identity2']
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
-            is_empty if self.started else True
+            (is_empty if self.started else True)
             and identity1 != "unknown"
             and identity2 != "unknown"
             and self._answer_exists(identity1, identity2)
