@@ -1,4 +1,6 @@
 data/
+answers.csv
+verification_data.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
