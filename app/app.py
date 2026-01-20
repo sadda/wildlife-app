@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import filecmp
 import os
 import tempfile
+import time
 
 DATA_CSV = "verification_data.csv"
 SEGMENTATION_CSV = 'segmentation.csv'
@@ -43,9 +44,10 @@ class App:
         else:
             self.answers = self.df.copy()
             self.answers['answer'] = None
+            self.answers['time'] = 0.0
 
         # Verify the answer data
-        columns1 = self.answers.columns.difference({'answer'})
+        columns1 = self.answers.columns.difference({'answer', 'time'})
         columns2 = self.df.columns
         df1 = self.answers[columns1]
         df2 = self.df[columns1]
@@ -69,8 +71,8 @@ class App:
             ("Same (Q)", "q", self.on_same, 0, 0),
             ("Different (W)", "w", self.on_diff, 0, 1),
             ("Unknown (E)", "e", self.on_unknown, 0, 2),
-            ("Previous (A)", "a", self.prev, 1, 0),
-            ("Next (S)", "s", self.next, 1, 1),
+            ("Previous (A)", "a", self.on_prev, 1, 0),
+            ("Next (S)", "s", self.on_next, 1, 1),
             ("Download dataset", None, self.download_dataset, 2, 0),
             ("Download segmentation", None, self.download_segmentation, 2, 1),
             ("Download verification", None, self.download_verification, 2, 2),
@@ -104,25 +106,43 @@ class App:
             if key is not None:
                 self.root.bind(key, lambda e, a=action: a())
 
+    def _elapsed_since_plot(self):
+        return time.perf_counter() - self.plot_time
+
     def _fit_to_canvas(self, img):
         w, h = img.size
         scale = min(CANVAS_SIZE / w, CANVAS_SIZE / h)
         new_size = (int(w * scale), int(h * scale))
         return img.resize(new_size, Image.LANCZOS)
 
+    def _log_time(self):
+        self.answers.loc[self.idx, "time"] += self._elapsed_since_plot()
+        self._save_csv()
+
+    def _reset_time(self):
+        self.plot_time = time.perf_counter()
+
+    def _save_csv(self):
+        self.answers.to_csv(ANS_CSV, index=False)
+
     def on_same(self, event=None):
+        self._log_time()
         self.answer(ANS_POS)
 
     def on_diff(self, event=None):
+        self._log_time()
         self.answer(ANS_NEG)
 
     def on_unknown(self, event=None):
+        self._log_time()
         self.answer(ANS_UNK)
 
     def on_prev(self, event=None):
+        self._log_time()
         self.prev()
 
     def on_next(self, event=None):
+        self._log_time()
         self.next()
 
     def download_dataset(self, event=None):
@@ -150,6 +170,7 @@ class App:
                 raise RuntimeError(f'Download failed for {base_name}')
             if os.path.exists(path_new) and filecmp.cmp(path_new, path_tmp, shallow=False):
                 messagebox.showinfo('Info', f'The file is already the newest one.')
+                self._reset_time()
             else:
                 os.replace(path_tmp, path_new)
                 self.close_app(message=f'The file has been downloaded. The application will now close.')
@@ -232,9 +253,11 @@ class App:
         self.canvas_l.create_image(200, 200, image=self.tk_img1)
         self.canvas_r.create_image(200, 200, image=self.tk_img2)
 
+        self._reset_time()
+
     def answer(self, answer):
         self.answers.loc[self.idx, "answer"] = answer
-        self.answers.to_csv(ANS_CSV, index=False)
+        self._save_csv()
         self.next()
 
     def next(self):
