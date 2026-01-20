@@ -21,7 +21,7 @@ class App:
         self.root = root
         self.root.title("Image Comparator")
         self.dataset = dataset
-        self.started = False
+        self.skip_same = True
         
         # Check whether the dataset was downloaded
         if not dataset.is_downloaded():
@@ -63,9 +63,6 @@ class App:
 
         # Load the first couple of images
         self.load_row()
-
-        # Initialize the started variable
-        self.started = True
 
     def _actions(self):
         return [
@@ -157,6 +154,7 @@ class App:
             self.close_app()
 
     def next_body_part(self):
+        self.skip_same = True
         unique_parts = self.df['matching_part'].unique()
         i = np.where(self.df.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
         i = np.mod(i + 1, len(unique_parts))
@@ -199,6 +197,7 @@ class App:
     def _load_image(self, image_id):        
         j = self.dataset.get_index(image_id)
         if j is None:
+            # TODO: return a warning and ask for download
             return None
         return self.dataset[j]
 
@@ -214,7 +213,7 @@ class App:
         identity2 = self.df.iloc[self.idx]['identity2']
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
-            (is_empty if self.started else True)
+            (is_empty if not self.skip_same else True)
             and identity1 != "unknown"
             and identity2 != "unknown"
             and self._answer_exists(identity1, identity2)
@@ -234,7 +233,7 @@ class App:
 
     def load_row(self):
         if not (0 <= self.idx < len(self.df)):
-            if not self.started:
+            if self.skip_same:
                 messagebox.showinfo('Info', 'All turtles were identified. Either delete some rows in answers.csv or the whole file.')
             self.root.destroy()
             return
@@ -263,6 +262,8 @@ class App:
 
         self.canvas_l.create_image(200, 200, image=self.tk_img1)
         self.canvas_r.create_image(200, 200, image=self.tk_img2)
+
+        self.skip_same = False
 
         self._reset_time()
 
