@@ -16,6 +16,7 @@ class App:
         self.root = root
         self.root.title("Image Comparator")
         self.dataset = dataset
+        self.started = False
         
         # Check whether the dataset was downloaded
         if not dataset.is_downloaded():
@@ -57,6 +58,9 @@ class App:
 
         # Load the first couple of images
         self.load_row()
+
+        # Initialize the started variable
+        self.started = True
 
     def _actions(self):
         return [
@@ -181,6 +185,8 @@ class App:
 
     def load_row(self):
         if not (0 <= self.idx < len(self.df)):
+            if not self.started:
+                messagebox.showinfo('Info', 'All turtles were identified. Either delete some rows in answers.csv or the whole file.')
             self.root.destroy()
             return
 
