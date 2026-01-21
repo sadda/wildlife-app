@@ -258,7 +258,7 @@ class App:
     def _answer_subset(self, col1, col2, value1, value2):
         idx1 = (self.answers[col1] == value1) * (self.answers[col2] == value2)
         idx2 = (self.answers[col1] == value2) * (self.answers[col2] == value1)
-        idx = idx1 + idx2
+        idx = idx1 | idx2
         return self.answers.loc[idx, 'answer']
 
     def _answer_exists(self):
@@ -274,7 +274,7 @@ class App:
             answers_subset2 = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
             idx1 = answers_subset1.isin([ANS_NEG, ANS_POS])
             idx2 = answers_subset2.isin([ANS_NEG, ANS_POS])
-            return idx1 + idx2
+            return idx1 | idx2
             
     def _skip_plotting(self):
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
