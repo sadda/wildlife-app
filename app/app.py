@@ -21,7 +21,7 @@ class App:
         self.root = root
         self.root.title("Image Comparator")
         self.dataset = dataset
-        self.skip_same = True
+        self.skip_filled = True
         
         # Check whether the dataset was downloaded
         if not dataset.is_downloaded():
@@ -216,7 +216,7 @@ class App:
             self.close_app()
 
     def next_body_part(self):
-        self.skip_same = True
+        self.skip_filled = True
         unique_parts = self.answers['matching_part'].unique()
         i = np.where(self.answers.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
         i = np.mod(i + 1, len(unique_parts))
@@ -262,26 +262,27 @@ class App:
         return self.answers.loc[idx, 'answer']
 
     def _answer_exists(self):
+        answer_values = [ANS_NEG, ANS_POS]
         encounter1 = self.answers.iloc[self.idx]['encounter1']
         encounter2 = self.answers.iloc[self.idx]['encounter2']
         identity1 = self.answers.iloc[self.idx]['identity1']
         identity2 = self.answers.iloc[self.idx]['identity2']
         if identity1 == 'unknown' or identity2 == 'unknown':
             answers_subset = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
-            return answers_subset.isin([ANS_NEG, ANS_POS])
+            return answers_subset.isin(answer_values)
         else:
             answers_subset1 = self._answer_subset('identity1', 'identity2', identity1, identity2)
             answers_subset2 = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
-            idx1 = answers_subset1.isin([ANS_NEG, ANS_POS])
-            idx2 = answers_subset2.isin([ANS_NEG, ANS_POS])
+            idx1 = answers_subset1.isin(answer_values)
+            idx2 = answers_subset2.isin(answer_values)
             return idx1 | idx2
             
     def _skip_plotting(self):
-        is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
-        return (
-            (is_empty if not self.skip_same else True)
-            and self.answers.iloc[self.idx]['skipping']
-        )
+        row = self.answers.iloc[self.idx]
+        if self.skip_filled:
+            return row['skipping'] or not pd.isnull(row['answer'])
+        else:
+            return row['skipping']
 
     def next_prev(self):
         if self.increase:
@@ -297,7 +298,7 @@ class App:
 
     def load_row(self):
         if not (0 <= self.idx < len(self.answers)):
-            if self.skip_same:
+            if self.skip_filled:
                 messagebox.showinfo('Info', 'All turtles were identified. Either delete some rows in answers.csv or the whole file.')
             self.root.destroy()
             return
@@ -327,7 +328,7 @@ class App:
         self.canvas_l.create_image(200, 200, image=self.tk_img1)
         self.canvas_r.create_image(200, 200, image=self.tk_img2)
 
-        self.skip_same = False
+        self.skip_filled = False
         self._set_text()
 
         self._reset_time()
