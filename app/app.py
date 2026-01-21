@@ -69,7 +69,6 @@ class App:
         else:
             # Load the first couple of images
             self._initialize_skipping()
-            self._set_text()
             self.load_row()
 
     def _actions(self):
@@ -118,7 +117,7 @@ class App:
         self.text_frame.grid(row=0, column=1, sticky="n", padx=(20, 0))
         self.text_box = tk.Text(
             self.text_frame,
-            width=40,
+            width=60,
             height=10,
             wrap="word",
             bg=bg,
@@ -150,6 +149,7 @@ class App:
 
     def _initialize_skipping(self):
         idx = self.idx
+        self.answers['skipping'] = False
         for i in range(len(self.answers)):
             self.idx = i
             self._update_skipping()
@@ -167,7 +167,20 @@ class App:
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self):
-        pass
+        self.text_box.delete('1.0', 'end')
+        for i, (matching_part, answers_subset) in enumerate(self.answers.groupby('matching_part')):
+            name = matching_part.upper()
+            done = (~answers_subset['answer'].isnull())
+            skipping = answers_subset['skipping']
+
+            n = len(answers_subset)
+            n_done = done.sum()
+            n_skipping = (skipping * (~done)).sum()
+
+            self.text_box.insert(
+                f'{i+1}.0', 
+                f'{name} ({n}): done {n_done}, remaining {n-n_done-n_skipping}.\n'
+            )
 
     def _update_skipping(self):
         answers_subset = self._answer_exists()
@@ -315,6 +328,7 @@ class App:
         self.canvas_r.create_image(200, 200, image=self.tk_img2)
 
         self.skip_same = False
+        self._set_text()
 
         self._reset_time()
 
