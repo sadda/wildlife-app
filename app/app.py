@@ -68,6 +68,8 @@ class App:
             messagebox.showinfo('Info', 'Some entries are mismatched. Try to download segmentation of dataset.')
         else:
             # Load the first couple of images
+            self._initialize_counters()
+            self._set_text()
             self.load_row()
 
     def _actions(self):
@@ -84,20 +86,46 @@ class App:
         ]
 
     def _build_ui(self):
-        self.img_frame = ttk.Frame(self.root)
-        self.img_frame.pack(padx=10, pady=10)
+        # Main container
+        self.main_frame = ttk.Frame(self.root)
+        self.main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.counter_var = tk.StringVar()
-        self.counter_label = ttk.Label(self.root, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold"))
-        self.counter_label.pack(pady=(5, 0))
+        # Image frame
+        self.img_frame = ttk.Frame(self.main_frame)
+        self.img_frame.pack(pady=(0, 10))
 
         self.canvas_l = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
         self.canvas_r = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
         self.canvas_l.grid(row=0, column=0, padx=5)
         self.canvas_r.grid(row=0, column=1, padx=5)
 
-        self.btn_frame = ttk.Frame(self.root)
-        self.btn_frame.pack(pady=10)
+        # Counter frame
+        self.counter_var = tk.StringVar()
+        self.counter_label = ttk.Label(self.main_frame, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold"))
+        self.counter_label.pack(pady=(0, 10))
+
+        # Bottom area
+        self.bottom_frame = ttk.Frame(self.main_frame)
+        self.bottom_frame.pack(fill="both", expand=True)
+
+        # Buttons (left)
+        self.btn_frame = ttk.Frame(self.bottom_frame)
+        self.btn_frame.grid(row=0, column=0, sticky="nw")
+
+        # Text (right)
+        bg = self.root.cget("background")
+        self.text_frame = tk.Frame(self.bottom_frame, bg=bg)
+        self.text_frame.grid(row=0, column=1, sticky="n", padx=(20, 0))
+        self.text_box = tk.Text(
+            self.text_frame,
+            width=40,
+            height=10,
+            wrap="word",
+            bg=bg,
+            relief="flat",
+            highlightthickness=0
+        )
+        self.text_box.pack(fill="both", expand=True)
 
         for text, _, action, row, col in self._actions():
             ttk.Button(
@@ -130,6 +158,9 @@ class App:
     def _save_csv(self):
         answers_save = self.answers.drop(['index1', 'index2'], axis=1)
         answers_save.to_csv(ANS_CSV, index=False)
+
+    def _set_text(self):
+        pass
 
     def on_same(self, event=None):
         self._log_time()
