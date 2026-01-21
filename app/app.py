@@ -36,14 +36,14 @@ class App:
         # Load the verification data
         if not os.path.exists(DATA_CSV):
             dataset.download_verification(DATA_CSV)
-        self.df = pd.read_csv(DATA_CSV)
-        assert isinstance(self.df.index, pd.RangeIndex)
+        df = pd.read_csv(DATA_CSV)
+        assert isinstance(df.index, pd.RangeIndex)
 
         # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
         else:
-            self.answers = self.df.copy()
+            self.answers = df.copy()
             self.answers['answer'] = None
             self.answers['time'] = 0.0
 
@@ -55,8 +55,8 @@ class App:
 
         # Verify the answer data
         columns1 = self.answers.columns.difference({'answer', 'time'})
-        columns2 = self.df.columns
-        if set(columns1) != set(columns2) or not self.answers[columns1].equals(self.df[columns1]):
+        columns2 = df.columns
+        if set(columns1) != set(columns2) or not self.answers[columns1].equals(df[columns1]):
             messagebox.showinfo('Info', f'File {ANS_CSV} has wrong format. It may help to delete it.')
             self.close_app()
 
@@ -162,12 +162,11 @@ class App:
 
     def next_body_part(self):
         self.skip_same = True
-        unique_parts = self.df['matching_part'].unique()
-        i = np.where(self.df.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
+        unique_parts = self.answers['matching_part'].unique()
+        i = np.where(self.answers.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
         i = np.mod(i + 1, len(unique_parts))
-        self.idx = np.where(unique_parts[i] == self.df['matching_part'])[0][0] - 1
+        self.idx = np.where(unique_parts[i] == self.answers['matching_part'])[0][0] - 1
         self.next()
-        # TODO: add download of segmentation on the start?
         # TODO: handle if internet not connected
 
     def _download_file(self, path_new, download_fun):
@@ -201,23 +200,16 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
-    def _load_image(self, image_id):        
-        j = self.dataset.get_index(image_id)
-        if j is None:
-            # TODO: return a warning and ask for download
-            return None
-        return self.dataset[j]
-
     def _answer_exists(self, identity1, identity2):
-        idx1 = (self.df['identity1'] == identity1) * (self.df['identity2'] == identity2)
-        idx2 = (self.df['identity1'] == identity2) * (self.df['identity2'] == identity1)
+        idx1 = (self.answers['identity1'] == identity1) * (self.answers['identity2'] == identity2)
+        idx2 = (self.answers['identity1'] == identity2) * (self.answers['identity2'] == identity1)
         idx = idx1 + idx2
         ans = self.answers.loc[idx, 'answer']
         return (ans.isin([ANS_NEG, ANS_POS])).any()
 
     def _skip_plotting(self):
-        identity1 = self.df.iloc[self.idx]['identity1']
-        identity2 = self.df.iloc[self.idx]['identity2']
+        identity1 = self.answers.iloc[self.idx]['identity1']
+        identity2 = self.answers.iloc[self.idx]['identity2']
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
             (is_empty if not self.skip_same else True)
@@ -233,13 +225,13 @@ class App:
             self.prev()
 
     def load_images(self):
-        row = self.df.iloc[self.idx]
-        img1 = self._load_image(row['image_id1'])
-        img2 = self._load_image(row['image_id2'])
+        row = self.answers.iloc[self.idx]
+        img1 = self.dataset[row['index1']]
+        img2 = self.dataset[row['index2']]
         return img1, img2
 
     def load_row(self):
-        if not (0 <= self.idx < len(self.df)):
+        if not (0 <= self.idx < len(self.answers)):
             if self.skip_same:
                 messagebox.showinfo('Info', 'All turtles were identified. Either delete some rows in answers.csv or the whole file.')
             self.root.destroy()
@@ -255,7 +247,7 @@ class App:
             self.next_prev()
             return
 
-        text = f'Image {self.idx + 1}/{len(self.df)}'
+        text = f'Image {self.idx + 1}/{len(self.answers)}'
         answer = self.answers.iloc[self.idx]['answer']
         if not pd.isnull(answer):
             text = f'{text} - {answer.upper()}'
