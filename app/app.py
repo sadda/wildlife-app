@@ -200,22 +200,31 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
-    def _answer_exists(self, identity1, identity2):
-        idx1 = (self.answers['identity1'] == identity1) * (self.answers['identity2'] == identity2)
-        idx2 = (self.answers['identity1'] == identity2) * (self.answers['identity2'] == identity1)
+    def _answer_exists_col(self, col1, col2, value1, value2):
+        idx1 = (self.answers[col1] == value1) * (self.answers[col2] == value2)
+        idx2 = (self.answers[col1] == value2) * (self.answers[col2] == value1)
         idx = idx1 + idx2
         ans = self.answers.loc[idx, 'answer']
         return (ans.isin([ANS_NEG, ANS_POS])).any()
 
-    def _skip_plotting(self):
+    def _answer_exists(self):
+        encounter1 = self.answers.iloc[self.idx]['encounter1']
+        encounter2 = self.answers.iloc[self.idx]['encounter2']
         identity1 = self.answers.iloc[self.idx]['identity1']
         identity2 = self.answers.iloc[self.idx]['identity2']
+        if identity1 == 'unknown' or identity2 == 'unknown':
+            return self._answer_exists_col('encounter1', 'encounter2', encounter1, encounter2)
+        else:
+            return (
+                self._answer_exists_col('identity1', 'identity2', identity1, identity2)
+                or self._answer_exists_col('encounter1', 'encounter2', encounter1, encounter2)
+            )
+
+    def _skip_plotting(self):
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
             (is_empty if not self.skip_same else True)
-            and identity1 != "unknown"
-            and identity2 != "unknown"
-            and self._answer_exists(identity1, identity2)
+            and self._answer_exists()
         )
 
     def next_prev(self):
