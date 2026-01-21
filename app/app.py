@@ -47,19 +47,18 @@ class App:
             self.answers['answer'] = None
             self.answers['time'] = 0.0
 
-        # Verify the answer data
-        columns1 = self.answers.columns.difference({'answer', 'time'})
-        columns2 = self.df.columns
-        df1 = self.answers[columns1]
-        df2 = self.df[columns1]
-        if set(columns1) != set(columns2) or not df1[columns1].equals(df2[columns1]):
-            raise ValueError(f'File {ANS_CSV} has wrong format. It may help to delete it.')
-
         # Set the variables
         self.idx = 0
         self.increase = True
         self._build_ui()
         self._bind_keys()
+
+        # Verify the answer data
+        columns1 = self.answers.columns.difference({'answer', 'time'})
+        columns2 = self.df.columns
+        if set(columns1) != set(columns2) or not self.answers[columns1].equals(self.df[columns1]):
+            messagebox.showinfo('Info', f'File {ANS_CSV} has wrong format. It may help to delete it.')
+            self.close_app()
 
         # Verify the segmentation data
         self.answers['index1'] = self.answers['image_id1'].apply(dataset.get_index)
