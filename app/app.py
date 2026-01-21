@@ -61,8 +61,15 @@ class App:
         self._build_ui()
         self._bind_keys()
 
-        # Load the first couple of images
-        self.load_row()
+        # Verify the segmentation data
+        self.answers['index1'] = self.answers['image_id1'].apply(dataset.get_index)
+        self.answers['index2'] = self.answers['image_id2'].apply(dataset.get_index)
+        idx_null = self.answers[['index1', 'index2']].isnull()
+        if idx_null.any().any():
+            messagebox.showinfo('Info', 'Some entries are mismatched. Try to download segmentation of dataset.')
+        else:
+            # Load the first couple of images
+            self.load_row()
 
     def _actions(self):
         return [
@@ -122,7 +129,8 @@ class App:
         self.plot_time = time.perf_counter()
 
     def _save_csv(self):
-        self.answers.to_csv(ANS_CSV, index=False)
+        answers_save = self.answers.drop(['index1', 'index2'], axis=1)
+        answers_save.to_csv(ANS_CSV, index=False)
 
     def on_same(self, event=None):
         self._log_time()
