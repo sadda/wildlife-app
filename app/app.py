@@ -68,7 +68,7 @@ class App:
             messagebox.showinfo('Info', 'Some entries are mismatched. Try to download segmentation of dataset.')
         else:
             # Load the first couple of images
-            self._initialize_counters()
+            self._initialize_skipping()
             self._set_text()
             self.load_row()
 
@@ -148,6 +148,13 @@ class App:
         new_size = (int(w * scale), int(h * scale))
         return img.resize(new_size, Image.LANCZOS)
 
+    def _initialize_skipping(self):
+        idx = self.idx
+        for i in range(len(self.answers)):
+            self.idx = i
+            self._update_skipping()
+        self.idx = idx
+
     def _log_time(self):
         self.answers.loc[self.idx, "time"] += self._elapsed_since_plot()
         self._save_csv()
@@ -156,12 +163,16 @@ class App:
         self.plot_time = time.perf_counter()
 
     def _save_csv(self):
-        answers_save = self.answers.drop(['index1', 'index2'], axis=1)
+        answers_save = self.answers.drop(['index1', 'index2', 'skipping'], axis=1)
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self):
         pass
 
+    def _update_skipping(self):
+        answers_subset = self._answer_exists()
+        self.answers.loc[answers_subset.index, 'skipping'] = answers_subset.any()
+        
     def on_same(self, event=None):
         self._log_time()
         self.answer(ANS_POS)
@@ -231,12 +242,11 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
-    def _answer_exists_col(self, col1, col2, value1, value2):
+    def _answer_subset(self, col1, col2, value1, value2):
         idx1 = (self.answers[col1] == value1) * (self.answers[col2] == value2)
         idx2 = (self.answers[col1] == value2) * (self.answers[col2] == value1)
         idx = idx1 + idx2
-        ans = self.answers.loc[idx, 'answer']
-        return (ans.isin([ANS_NEG, ANS_POS])).any()
+        return self.answers.loc[idx, 'answer']
 
     def _answer_exists(self):
         encounter1 = self.answers.iloc[self.idx]['encounter1']
@@ -244,18 +254,20 @@ class App:
         identity1 = self.answers.iloc[self.idx]['identity1']
         identity2 = self.answers.iloc[self.idx]['identity2']
         if identity1 == 'unknown' or identity2 == 'unknown':
-            return self._answer_exists_col('encounter1', 'encounter2', encounter1, encounter2)
+            answers_subset = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
+            return answers_subset.isin([ANS_NEG, ANS_POS])
         else:
-            return (
-                self._answer_exists_col('identity1', 'identity2', identity1, identity2)
-                or self._answer_exists_col('encounter1', 'encounter2', encounter1, encounter2)
-            )
-
+            answers_subset1 = self._answer_subset('identity1', 'identity2', identity1, identity2)
+            answers_subset2 = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
+            idx1 = answers_subset1.isin([ANS_NEG, ANS_POS])
+            idx2 = answers_subset2.isin([ANS_NEG, ANS_POS])
+            return idx1 + idx2
+            
     def _skip_plotting(self):
         is_empty = pd.isnull(self.answers.iloc[self.idx]['answer'])
         return (
             (is_empty if not self.skip_same else True)
-            and self._answer_exists()
+            and self.answers.iloc[self.idx]['skipping']
         )
 
     def next_prev(self):
@@ -308,6 +320,7 @@ class App:
 
     def answer(self, answer):
         self.answers.loc[self.idx, "answer"] = answer
+        self._update_skipping()
         self._save_csv()
         self.next()
 
