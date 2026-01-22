@@ -286,7 +286,7 @@ class App:
         if self.skip_filled:
             return row['skipping'] or not pd.isnull(row['answer'])
         else:
-            return row['skipping']
+            return row['skipping'] and pd.isnull(row['answer'])
 
     def next_prev(self):
         if self.increase:
