@@ -122,7 +122,9 @@ class App:
             wrap="word",
             bg=bg,
             relief="flat",
-            highlightthickness=0
+            highlightthickness=0,
+            state="disabled",
+            takefocus=0
         )
         self.text_box.pack(fill="both", expand=True)
 
@@ -167,6 +169,7 @@ class App:
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self):
+        self.text_box.config(state='normal')
         self.text_box.delete('1.0', 'end')
         for i, (matching_part, answers_subset) in enumerate(self.answers.groupby('matching_part')):
             name = matching_part.upper()
@@ -181,6 +184,7 @@ class App:
                 f'{i+1}.0', 
                 f'{name} ({n}): done {n_done}, remaining {n-n_done-n_skipping}.\n'
             )
+        self.text_box.config(state='disabled')
 
     def _update_skipping(self):
         answers_subset = self._answer_exists()
