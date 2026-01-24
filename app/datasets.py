@@ -45,6 +45,6 @@ class TurtlesOfSMSRC(WildlifeDataset):
         # Check whether segmentations are present
         segmentation_csv = os.path.join(self.root, 'segmentation.csv')
         if not os.path.exists(segmentation_csv):
-            self.download_segmentation()
+            self.download_segmentation(segmentation_csv)
         # Load the class with segmentations
         self.dataset = self.dataset_wd(self.root, load_segmentation=True, img_load='bbox')
