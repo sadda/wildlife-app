@@ -2,6 +2,8 @@
 
 This repo provides an app for validating whether two images depict the same individual. It is part of a large, mostly automated pipeline that takes photos of one animal species as input and outputs photos showing the same individuals.
 
+<img src="https://github.com/sadda/wildlife-app/raw/master/docs/resources/app.png" alt="App photo" width="300">
+
 ## Installation
 
 We provide two ways of installation. Both are for Windows only. If you need to use the app on a different operating system, [contact us](mailto:wilddatasets@gmail.com). The first one is simpler but requires significantly more internet bandwidth.
