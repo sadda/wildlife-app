@@ -5,12 +5,7 @@ from app.app import App
 from config.load_dataset import get_dataset
 
 def main():
-    if len(sys.argv) != 2:
-        raise SystemExit("Usage: python main.py <dataset>")
-
-    dataset_name = sys.argv[1]
-    config_path = os.path.join("config", f"{dataset_name}.json")
-
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "config/config.json"
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config not found: {config_path}")
 
