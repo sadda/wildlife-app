@@ -10,4 +10,4 @@ def get_dataset(config_path):
         cfg = json.load(f)
 
     dataset_cls = _DATASETS[cfg["dataset"]]
-    return dataset_cls(cfg["root"])
+    return dataset_cls(cfg["root"]), cfg["dataset"]

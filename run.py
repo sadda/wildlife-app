@@ -10,9 +10,9 @@ def main():
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config not found: {config_path}")    
 
-    dataset = get_dataset(config_path)
+    dataset, name = get_dataset(config_path)
     root = tk.Tk()
-    App(root, dataset)
+    App(root, dataset, name)
     root.mainloop()
 
 if __name__ == "__main__":

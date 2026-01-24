@@ -17,10 +17,11 @@ ANS_UNK = "unknown"
 CANVAS_SIZE = 400
 
 class App:
-    def __init__(self, root, dataset):
+    def __init__(self, root, dataset, name):
         self.root = root
         self.root.title("Image Comparator")
         self.dataset = dataset
+        self.name = name
         self.skip_filled = True
         
         # Check whether the dataset was downloaded
@@ -317,7 +318,7 @@ class App:
             self.next_prev()
             return
 
-        text = f'Image {self.idx + 1}/{len(self.answers)}'
+        text = f'{self.name} image {self.idx + 1}/{len(self.answers)}'
         answer = self.answers.iloc[self.idx]['answer']
         if not pd.isnull(answer):
             text = f'{text} - {answer.upper()}'
