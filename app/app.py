@@ -43,6 +43,7 @@ class App:
         # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
+            self.answers['answer'] = self.answers['answer'].astype(object)
         else:
             self.answers = df.copy()
             self.answers['answer'] = None
