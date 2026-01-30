@@ -1,5 +1,5 @@
 import json
-from app import TurtlesOfSMSRC
+from wildlife_re_id_app.datasets import TurtlesOfSMSRC
 
 _DATASETS = {
     "TurtlesOfSMSRC": TurtlesOfSMSRC,

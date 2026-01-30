@@ -1,7 +1,7 @@
 import sys
 import os
 import tkinter as tk
-from app.app import App
+from wildlife_re_id_app.app import App
 from config.load_dataset import get_dataset
 
 def main():
