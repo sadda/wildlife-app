@@ -1,4 +1,6 @@
 {
   "dataset": "TurtlesOfSMSRC",
-  "root": "data/TurtlesOfSMSRC"
+  "kwargs": {
+    "root": "data/TurtlesOfSMSRC"
+  }
 }
