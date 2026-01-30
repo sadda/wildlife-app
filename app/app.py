@@ -63,8 +63,8 @@ class App:
             self.close_app()
 
         # Verify the segmentation data
-        self.answers['index1'] = self.answers['image_id1'].apply(dataset.get_index)
-        self.answers['index2'] = self.answers['image_id2'].apply(dataset.get_index)
+        self.answers['index1'] = self.answers['image_id1'].apply(dataset.get_index_query)
+        self.answers['index2'] = self.answers['image_id2'].apply(dataset.get_index_database)
         idx_null = self.answers[['index1', 'index2']].isnull()
         if idx_null.any().any():
             messagebox.showinfo('Info', 'Some entries are mismatched. Try to download segmentation of dataset.')
@@ -252,7 +252,7 @@ class App:
                 self.close_app(message=f'The file has been downloaded. The application will now close.')
 
     def download_segmentation(self):
-        self._download_file(os.path.join(self.dataset.root, SEGMENTATION_CSV), self.dataset.download_segmentation)
+        self._download_file(os.path.join(self.dataset.root_query, SEGMENTATION_CSV), self.dataset.download_segmentation)
 
     def download_verification(self):
         self._download_file(DATA_CSV, self.dataset.download_verification)
@@ -298,8 +298,8 @@ class App:
 
     def load_images(self):
         row = self.answers.iloc[self.idx]
-        img1 = self.dataset[row['index1']]
-        img2 = self.dataset[row['index2']]
+        img1 = self.dataset.query[row['index1']]
+        img2 = self.dataset.database[row['index2']]
         return img1, img2
 
     def load_row(self):
