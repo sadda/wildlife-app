@@ -4,7 +4,7 @@ from . import utils
 from .datasets_animal_re_id import TurtlewatchEgypt_Citizen, TurtlewatchEgypt_Master
 
 class WildlifeDataset:
-    segmentation_url = None
+    segmentation_urls = None
     verification_url = None
 
     def __init__(self, root_query, root_database):
@@ -20,12 +20,6 @@ class WildlifeDataset:
         except Exception:
             return False
 
-    def download_segmentation(self, path):
-        utils.download_file(self.segmentation_url, path)
-
-    def download_verification(self, name):
-        utils.download_file(self.verification_url, name)
-
     def get_index_database(self, i):
         return utils.get_index(self.database, i)
 
@@ -37,7 +31,7 @@ class WildlifeDataset:
 
 class TurtlesOfSMSRC(WildlifeDataset):
     dataset_wd = wildlife_datasets.datasets.TurtlesOfSMSRC
-    segmentation_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/segmentation.csv'
+    segmentation_urls = ['https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/segmentation.csv']
     verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
     def __init__(self, root):
@@ -61,7 +55,7 @@ class TurtlesOfSMSRC(WildlifeDataset):
 
 class TurtlewatchEgypt(WildlifeDataset):
     # dataset_wd = wildlife_datasets.datasets.TurtlesOfSMSRC
-    # segmentation_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/segmentation.csv'
+    segmentation_urls = []
     # verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
     def __init__(self):
@@ -71,6 +65,10 @@ class TurtlewatchEgypt(WildlifeDataset):
     
     def download_dataset(self):
         raise NotImplementedError()
+
+    def get_segmentation_files(self):
+        # TODO: finish
+        return (self.segmentation_urls, [])
 
     def load(self):
         # TODO: add to config

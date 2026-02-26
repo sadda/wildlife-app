@@ -7,6 +7,7 @@ import filecmp
 import os
 import tempfile
 import time
+from .utils import download_file
 
 DATA_CSV = "verification_data.csv"
 SEGMENTATION_CSV = 'segmentation.csv'
@@ -36,7 +37,7 @@ class App:
         
         # Load the verification data
         if not os.path.exists(DATA_CSV):
-            dataset.download_verification(DATA_CSV)
+            self.download_verification()
         df = pd.read_csv(DATA_CSV)
         assert isinstance(df.index, pd.RangeIndex)
 
@@ -228,9 +229,9 @@ class App:
         i = np.mod(i + 1, len(unique_parts))
         self.idx = np.where(unique_parts[i] == self.answers['matching_part'])[0][0] - 1
         self.next()
-        # TODO: handle if internet not connected
 
-    def _download_file(self, path_new, download_fun):
+    # TODO: handle if internet not connected
+    def _download_files(self, paths, urls):
         confirm = messagebox.askyesno(
             title=f"Download",
             message=f"Download the file now? Do not close the app please. It will close automatically."
@@ -238,24 +239,29 @@ class App:
         if not confirm:
             return 
         
-        base_name = os.path.basename(path_new)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path_tmp = os.path.join(tmpdir, base_name)
-            download_fun(path_tmp)
-            if not os.path.exists(path_tmp):
-                raise RuntimeError(f'Download failed for {base_name}')
-            if os.path.exists(path_new) and filecmp.cmp(path_new, path_tmp, shallow=False):
-                messagebox.showinfo('Info', f'The file is already the newest one.')
-                self._reset_time()
-            else:
-                os.replace(path_tmp, path_new)
-                self.close_app(message=f'The file has been downloaded. The application will now close.')
+        replaced = False
+        for path, url in zip(paths, urls):
+            base_name = os.path.basename(path)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                path_tmp = os.path.join(tmpdir, base_name)
+                download_file(url, path_tmp)
+                if not os.path.exists(path_tmp):
+                    raise RuntimeError(f'Download failed for {base_name}')
+                if not (os.path.exists(path) and filecmp.cmp(path, path_tmp, shallow=False)):
+                    os.replace(path_tmp, path)
+                    replaced = True
+        if replaced:
+            messagebox.showinfo('Info', f'The file is already the newest one.')
+            self._reset_time()
+        else:
+            self.close_app(message=f'The file has been downloaded. The application will now close.')
 
     def download_segmentation(self):
-        self._download_file(os.path.join(self.dataset.root_query, SEGMENTATION_CSV), self.dataset.download_segmentation)
+        urls, paths = self.dataset.get_segmentation_files()
+        self._download_files(paths, urls)
 
     def download_verification(self):
-        self._download_file(DATA_CSV, self.dataset.download_verification)
+        self._download_files([DATA_CSV], [self.dataset.verification_url])
 
     def close_app(self, message="The application will now close."):
         messagebox.showinfo("Exit", message)
