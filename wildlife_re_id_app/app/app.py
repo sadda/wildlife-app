@@ -1,23 +1,27 @@
-import tkinter as tk
-from tkinter import messagebox, ttk
-import numpy as np
-import pandas as pd
-from PIL import Image, ImageTk
 import filecmp
 import os
 import tempfile
 import time
-from typing import Callable, cast
-from .utils import download_file
+import tkinter as tk
+from collections.abc import Callable
+from tkinter import messagebox, ttk
+from typing import cast
+
+import numpy as np
+import pandas as pd
+from PIL import Image, ImageTk
+
 from ..datasets import WildlifeDataset
+from .utils import download_file
 
 DATA_CSV = "verification_data.csv"
-SEGMENTATION_CSV = 'segmentation.csv'
+SEGMENTATION_CSV = "segmentation.csv"
 ANS_CSV = "answers.csv"
 ANS_POS = "same"
 ANS_NEG = "different"
 ANS_UNK = "unknown"
 CANVAS_SIZE = 400
+
 
 class App:
     def __init__(self, root: tk.Tk, dataset: WildlifeDataset, name: str) -> None:
@@ -26,17 +30,17 @@ class App:
         self.dataset = dataset
         self.name = name
         self.skip_filled = True
-        
+
         # Check whether the dataset was downloaded
         if not dataset.is_downloaded():
             self.download_dataset()
             if not dataset.is_downloaded():
                 self.root.destroy()
                 return
-        
+
         # Load the dataset
         dataset.load()
-        
+
         # Load the verification data
         if not os.path.exists(DATA_CSV):
             self.download_verification()
@@ -53,12 +57,12 @@ class App:
         # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
-            self.answers['answer'] = self.answers['answer'].astype(object)
-            self.answers['time'] = self.answers['time'].astype(float)
+            self.answers["answer"] = self.answers["answer"].astype(object)
+            self.answers["time"] = self.answers["time"].astype(float)
         else:
             self.answers = df.copy()
-            self.answers['answer'] = None
-            self.answers['time'] = 0.0
+            self.answers["answer"] = None
+            self.answers["time"] = 0.0
 
         # Set the variables
         self.idx = 0
@@ -67,18 +71,18 @@ class App:
         self._bind_keys()
 
         # Verify the answer data
-        columns1 = self.answers.columns.difference({'answer', 'time'})
+        columns1 = self.answers.columns.difference({"answer", "time"})
         columns2 = df.columns
         if set(columns1) != set(columns2) or not self.answers[columns1].equals(df[columns1]):
-            messagebox.showinfo('Info', f'File {ANS_CSV} has wrong format. It may help to delete it.')
+            messagebox.showinfo("Info", f"File {ANS_CSV} has wrong format. It may help to delete it.")
             self.close_app()
 
         # Verify the segmentation data
-        self.answers['index1'] = self.answers['image_id1'].apply(dataset.get_index_query)
-        self.answers['index2'] = self.answers['image_id2'].apply(dataset.get_index_database)
-        idx_null = self.answers[['index1', 'index2']].isnull()
+        self.answers["index1"] = self.answers["image_id1"].apply(dataset.get_index_query)
+        self.answers["index2"] = self.answers["image_id2"].apply(dataset.get_index_database)
+        idx_null = self.answers[["index1", "index2"]].isnull()
         if idx_null.any().any():
-            messagebox.showinfo('Info', 'Some entries are mismatched. Try to download segmentation of dataset.')
+            messagebox.showinfo("Info", "Some entries are mismatched. Try to download segmentation of dataset.")
         else:
             # Load the first couple of images
             self._initialize_skipping()
@@ -113,7 +117,9 @@ class App:
 
         # Counter frame
         self.counter_var = tk.StringVar()
-        self.counter_label = ttk.Label(self.main_frame, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold"))
+        self.counter_label = ttk.Label(
+            self.main_frame, textvariable=self.counter_var, font=("TkDefaultFont", 12, "bold")
+        )
         self.counter_label.pack(pady=(0, 10))
 
         # Bottom area
@@ -137,16 +143,12 @@ class App:
             relief="flat",
             highlightthickness=0,
             state="disabled",
-            takefocus=0
+            takefocus=0,
         )
         self.text_box.pack(fill="both", expand=True)
 
         for text, _, action, row, col in self._actions():
-            ttk.Button(
-                self.btn_frame,
-                text=text,
-                command=action
-            ).grid(row=row, column=col)
+            ttk.Button(self.btn_frame, text=text, command=action).grid(row=row, column=col)
 
     def _bind_keys(self) -> None:
         for _, key, action, _, _ in self._actions():
@@ -164,7 +166,7 @@ class App:
 
     def _initialize_skipping(self) -> None:
         idx = self.idx
-        self.answers['skipping'] = False
+        self.answers["skipping"] = False
         for i in range(len(self.answers)):
             self.idx = i
             self._update_skipping()
@@ -180,32 +182,29 @@ class App:
         self.plot_time = time.perf_counter()
 
     def _save_csv(self) -> None:
-        answers_save = self.answers.drop(['index1', 'index2', 'skipping'], axis=1)
+        answers_save = self.answers.drop(["index1", "index2", "skipping"], axis=1)
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self) -> None:
-        self.text_box.config(state='normal')
-        self.text_box.delete('1.0', 'end')
-        for i, (matching_part, answers_subset) in enumerate(self.answers.groupby('matching_part')):
+        self.text_box.config(state="normal")
+        self.text_box.delete("1.0", "end")
+        for i, (matching_part, answers_subset) in enumerate(self.answers.groupby("matching_part")):
             assert isinstance(matching_part, str)
             name = matching_part.upper()
-            done = (~answers_subset['answer'].isnull())
-            skipping = answers_subset['skipping']
+            done = ~answers_subset["answer"].isnull()
+            skipping = answers_subset["skipping"]
 
             n = len(answers_subset)
             n_done = done.sum()
             n_skipping = (skipping * (~done)).sum()
 
-            self.text_box.insert(
-                f'{i+1}.0', 
-                f'{name} ({n}): done {n_done}, remaining {n-n_done-n_skipping}.\n'
-            )
-        self.text_box.config(state='disabled')
+            self.text_box.insert(f"{i + 1}.0", f"{name} ({n}): done {n_done}, remaining {n - n_done - n_skipping}.\n")
+        self.text_box.config(state="disabled")
 
     def _update_skipping(self) -> None:
         answers_subset = self._answer_exists()
-        self.answers.loc[answers_subset.index, 'skipping'] = bool(answers_subset.any())
-        
+        self.answers.loc[answers_subset.index, "skipping"] = bool(answers_subset.any())
+
     def on_same(self, event=None) -> None:
         self._log_time()
         self.answer(ANS_POS)
@@ -229,7 +228,7 @@ class App:
     def download_dataset(self, event=None) -> None:
         confirm = messagebox.askyesno(
             title="Download dataset",
-            message="Download may take tens of minutes. Download the dataset now? Do not close the app please. It will close automatically."
+            message="Download may take tens of minutes. Download the dataset now? Do not close the app please. It will close automatically.",
         )
         if confirm:
             self.dataset.download_dataset()
@@ -237,21 +236,20 @@ class App:
 
     def next_body_part(self) -> None:
         self.skip_filled = True
-        unique_parts = self.answers['matching_part'].unique()
-        i = np.where(self.answers.iloc[self.idx]['matching_part'] == unique_parts)[0][0]
+        unique_parts = self.answers["matching_part"].unique()
+        i = np.where(self.answers.iloc[self.idx]["matching_part"] == unique_parts)[0][0]
         i = np.mod(i + 1, len(unique_parts))
-        self.idx = np.where(unique_parts[i] == self.answers['matching_part'])[0][0] - 1
+        self.idx = np.where(unique_parts[i] == self.answers["matching_part"])[0][0] - 1
         self.next()
 
     # TODO: handle if internet not connected
     def _download_files(self, paths: list[str], urls: list[str]) -> None:
         confirm = messagebox.askyesno(
-            title="Download",
-            message="Download the file now? Do not close the app please. It will close automatically."
+            title="Download", message="Download the file now? Do not close the app please. It will close automatically."
         )
         if not confirm:
-            return 
-        
+            return
+
         replaced = False
         for path, url in zip(paths, urls):
             base_name = os.path.basename(path)
@@ -259,15 +257,15 @@ class App:
                 path_tmp = os.path.join(tmpdir, base_name)
                 download_file(url, path_tmp)
                 if not os.path.exists(path_tmp):
-                    raise RuntimeError(f'Download failed for {base_name}')
+                    raise RuntimeError(f"Download failed for {base_name}")
                 if not (os.path.exists(path) and filecmp.cmp(path, path_tmp, shallow=False)):
                     os.replace(path_tmp, path)
                     replaced = True
         if replaced:
-            messagebox.showinfo('Info', 'The file is already the newest one.')
+            messagebox.showinfo("Info", "The file is already the newest one.")
             self._reset_time()
         else:
-            self.close_app(message='The file has been downloaded. The application will now close.')
+            self.close_app(message="The file has been downloaded. The application will now close.")
 
     def download_segmentation(self) -> None:
         urls, paths = self.dataset.get_segmentation_files()
@@ -293,30 +291,30 @@ class App:
             idx1 = (self.answers[col1] == value1) & (self.answers[col2] == value2)
             idx2 = (self.answers[col1] == value2) & (self.answers[col2] == value1)
             idx = idx1 | idx2
-        return self.answers.loc[idx, 'answer']
+        return self.answers.loc[idx, "answer"]
 
     def _answer_exists(self) -> pd.Series:
         answer_values = [ANS_NEG, ANS_POS]
-        encounter1 = self.answers.iloc[self.idx]['encounter1']
-        encounter2 = self.answers.iloc[self.idx]['encounter2']
-        identity1 = self.answers.iloc[self.idx]['identity1']
-        identity2 = self.answers.iloc[self.idx]['identity2']
-        if identity1 == 'unknown' or identity2 == 'unknown':
-            answers_subset = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
+        encounter1 = self.answers.iloc[self.idx]["encounter1"]
+        encounter2 = self.answers.iloc[self.idx]["encounter2"]
+        identity1 = self.answers.iloc[self.idx]["identity1"]
+        identity2 = self.answers.iloc[self.idx]["identity2"]
+        if identity1 == "unknown" or identity2 == "unknown":
+            answers_subset = self._answer_subset("encounter1", "encounter2", encounter1, encounter2)
             return answers_subset.isin(answer_values)
         else:
-            answers_subset1 = self._answer_subset('identity1', 'identity2', identity1, identity2)
-            answers_subset2 = self._answer_subset('encounter1', 'encounter2', encounter1, encounter2)
+            answers_subset1 = self._answer_subset("identity1", "identity2", identity1, identity2)
+            answers_subset2 = self._answer_subset("encounter1", "encounter2", encounter1, encounter2)
             idx1 = answers_subset1.isin(answer_values)
             idx2 = answers_subset2.isin(answer_values)
             return idx1 | idx2
-            
+
     def _skip_plotting(self) -> bool:
         row = self.answers.iloc[self.idx]
         if self.skip_filled:
-            return row['skipping'] or not pd.isnull(row['answer'])
+            return row["skipping"] or not pd.isnull(row["answer"])
         else:
-            return row['skipping'] and pd.isnull(row['answer'])
+            return row["skipping"] and pd.isnull(row["answer"])
 
     def next_prev(self) -> None:
         if self.increase:
@@ -328,8 +326,8 @@ class App:
         assert self.dataset.query is not None
         assert self.dataset.database is not None
         row = self.answers.iloc[self.idx]
-        img1 = self.dataset.query[row['index1']]
-        img2 = self.dataset.database[row['index2']]
+        img1 = self.dataset.query[row["index1"]]
+        img2 = self.dataset.database[row["index2"]]
         assert isinstance(img1, Image.Image)
         assert isinstance(img2, Image.Image)
         return img1, img2
@@ -337,24 +335,26 @@ class App:
     def load_row(self) -> None:
         if not (0 <= self.idx < len(self.answers)):
             if self.skip_filled:
-                messagebox.showinfo('Info', 'All turtles were identified. Either delete some rows in answers.csv or the whole file.')
+                messagebox.showinfo(
+                    "Info", "All turtles were identified. Either delete some rows in answers.csv or the whole file."
+                )
             self.root.destroy()
             return
 
         if self._skip_plotting():
             self.next_prev()
             return
-        
+
         img1, img2 = self.load_images()
 
         if img1 is None or img2 is None:
             self.next_prev()
             return
 
-        text = f'{self.name} image {self.idx + 1}/{len(self.answers)}'
-        answer = self.answers.iloc[self.idx]['answer']
+        text = f"{self.name} image {self.idx + 1}/{len(self.answers)}"
+        answer = self.answers.iloc[self.idx]["answer"]
         if not pd.isnull(answer):
-            text = f'{text} - {answer.upper()}'
+            text = f"{text} - {answer.upper()}"
         self.counter_var.set(text)
 
         self.canvas_l.delete("all")

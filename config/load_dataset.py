@@ -1,4 +1,5 @@
 import json
+
 from wildlife_re_id_app.datasets import TurtlesOfSMSRC, TurtlewatchEgypt
 
 _DATASETS = {
@@ -6,8 +7,9 @@ _DATASETS = {
     "TurtlewatchEgypt": TurtlewatchEgypt,
 }
 
+
 def get_dataset(config_path):
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         cfg = json.load(f)
 
     dataset_cls = _DATASETS[cfg["dataset"]]
