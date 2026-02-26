@@ -202,8 +202,8 @@ class App:
         self.text_box.config(state="disabled")
 
     def _update_skipping(self) -> None:
-        answers_subset = self._answer_exists()
-        self.answers.loc[answers_subset.index, "skipping"] = bool(answers_subset.any())
+        idx, value = self._answer_exists()
+        self.answers.loc[idx, "skipping"] = value
 
     def on_same(self, event=None) -> None:
         self._log_time()
@@ -293,21 +293,34 @@ class App:
             idx = idx1 | idx2
         return self.answers.loc[idx, "answer"]
 
-    def _answer_exists(self) -> pd.Series:
+    def _answer_exists(self) -> tuple[pd.Index, bool]:
         answer_values = [ANS_NEG, ANS_POS]
         encounter1 = self.answers.iloc[self.idx]["encounter1"]
         encounter2 = self.answers.iloc[self.idx]["encounter2"]
         identity1 = self.answers.iloc[self.idx]["identity1"]
         identity2 = self.answers.iloc[self.idx]["identity2"]
-        if identity1 == "unknown" or identity2 == "unknown":
-            answers_subset = self._answer_subset("encounter1", "encounter2", encounter1, encounter2)
-            return answers_subset.isin(answer_values)
+        if identity1 == "unknown" and identity2 == "unknown":
+            # Both identities are unknown, do nothing
+            pass
+        elif identity1 == "unknown":
+            # First identity is unknown, disable first encounter and second identity
+            if not pd.isnull(encounter1):            
+                answers_subset = self._answer_subset("encounter1", "identity2", encounter1, identity2)
+                answers = answers_subset.isin(answer_values)
+                return answers.index, answers.any()
+        elif identity2 == "unknown":
+            # Second identity is unknown, disable first identity and second encounter
+            if not pd.isnull(encounter2):
+                answers_subset = self._answer_subset("identity1", "encounter2", identity1, encounter2)
+                answers = answers_subset.isin(answer_values)
+                return answers.index, answers.any()
         else:
-            answers_subset1 = self._answer_subset("identity1", "identity2", identity1, identity2)
-            answers_subset2 = self._answer_subset("encounter1", "encounter2", encounter1, encounter2)
-            idx1 = answers_subset1.isin(answer_values)
-            idx2 = answers_subset2.isin(answer_values)
-            return idx1 | idx2
+            # Both identities are known, disable whenever identities are equal
+            answers_subset = self._answer_subset("identity1", "identity2", identity1, identity2)
+            answers = answers_subset.isin(answer_values)
+            return answers.index, answers.any()
+        value = self.answers.loc[self.idx, "answer"]
+        return pd.Index([self.idx]), value in answer_values
 
     def _skip_plotting(self) -> bool:
         row = self.answers.iloc[self.idx]
