@@ -1,3 +1,10 @@
 {
-  "dataset": "TurtlewatchEgypt"
+  "dataset": "TurtlewatchEgypt",
+  "kwargs": {
+    "file_name": "wildlife_re_id_app/datasets/twe_individuals.csv",
+    "root_citizen": "data/TurtlewatchEgypt/citizen",
+    "root_heads": "data/TurtlewatchEgypt/PROFILES",
+    "root_flippers_f": "data/TurtlewatchEgypt/TWE_flipperprofiles_registered ind_LR_front",
+    "root_flippers_r": "data/TurtlewatchEgypt/TWE_flipperprofiles_registered ind_LR_rear"
+  }
 }

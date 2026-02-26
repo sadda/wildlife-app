@@ -77,10 +77,22 @@ class TurtlewatchEgypt(WildlifeDataset):
     segmentation_urls = []
     # verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
-    def __init__(self) -> None:
-        pass
+    def __init__(
+            self,
+            file_name: str,
+            root_citizen: str,
+            root_heads: str,
+            root_flippers_f: str,
+            root_flippers_r: str,
+            ) -> None:
+        
+        self.file_name = file_name
+        self.root_citizen = root_citizen
+        self.root_heads = root_heads
+        self.root_flippers_f = root_flippers_f
+        self.root_flippers_r = root_flippers_r
 
-    def download_dataset(self):  # -> Any:
+    def download_dataset(self):
         raise NotImplementedError()
 
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
@@ -88,41 +100,18 @@ class TurtlewatchEgypt(WildlifeDataset):
         return (self.segmentation_urls, [])
 
     def load(self) -> None:
-        # TODO: add to config
-
-        file_name = "wildlife_re_id_app/datasets/twe_individuals.csv"
-        root_citizen = "data/TurtlewatchEgypt/citizen"
-        root_heads = "data/TurtlewatchEgypt/PROFILES"
-        root_flippers_f = "data/TurtlewatchEgypt/TWE_flipperprofiles_registered ind_LR_front"
-        root_flippers_r = "data/TurtlewatchEgypt/TWE_flipperprofiles_registered ind_LR_rear"
-        # root_new = 'data/TurtlewatchEgypt'
-        # roots_new = [
-        #     # '2017 PICS + DATASHEET',
-        #     # '2018 PICS + DATASHEET',
-        #     # '2019 PICS + DATASHEET',
-        #     # '2020 PICS + DATASHEET',
-        #     # '2021 PICS + DATASHEET',
-        #     # '2022 PICS + online database',
-        #     # '2023 PICS + online database',
-        #     # '2024 PICS + online database',
-        #     '2025 PICS + online database',
-        # ]
-
         database_query_matching = False
-        dataset_q = TurtlewatchEgypt_Citizen(root_citizen, database_query_matching, load_label=False)
-        dataset_d = TurtlewatchEgypt_Master(
-            root_heads,
-            root_flippers_f,
-            root_flippers_r,
+        self.query = TurtlewatchEgypt_Citizen(self.root_citizen, database_query_matching, load_label=False).dataset
+        self.database = TurtlewatchEgypt_Master(
+            self.root_heads,
+            self.root_flippers_f,
+            self.root_flippers_r,
             database_query_matching,
-            file_name,
+            self.file_name,
             check_files=False,
             img_load="bbox",
             load_label=False,
-        )
-
-        self.query = dataset_q.dataset
-        self.database = dataset_d.dataset
+        ).dataset
 
     def try_basic_loading(self) -> None:
         # TODO: finish
