@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wildlife-app"
+version = "1.0.0"
+authors = [
+  { name="Lukáš Adam", email="lukas.adam.cr@gmail.com" },
+]
+maintainers = [
+  { name="Lukáš Adam", email="lukas.adam.cr@gmail.com" },
+]
+description = "Library for verification of predictions for wildlife re-identification datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = [
+    "wildlife",
+    "re-identification",
+    "datasets",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "Pillow",
+    "wildlife-datasets",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/sadda/wildlife-app"
+
+[tool.setuptools.packages.find]
+include = ["wildlife_re_id_app*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501", "F403", "F405"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
