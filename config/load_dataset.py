@@ -1,8 +1,9 @@
 import json
-from wildlife_re_id_app.datasets import TurtlesOfSMSRC
+from wildlife_re_id_app.datasets import TurtlesOfSMSRC, TurtlewatchEgypt
 
 _DATASETS = {
     "TurtlesOfSMSRC": TurtlesOfSMSRC,
+    "TurtlewatchEgypt": TurtlewatchEgypt,
 }
 
 def get_dataset(config_path):
