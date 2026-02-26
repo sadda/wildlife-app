@@ -262,9 +262,17 @@ class App:
         self.root.destroy()
 
     def _answer_subset(self, col1, col2, value1, value2):
-        idx1 = (self.answers[col1] == value1) * (self.answers[col2] == value2)
-        idx2 = (self.answers[col1] == value2) * (self.answers[col2] == value1)
-        idx = idx1 | idx2
+        # TODO: Handle nulls for database encounters differently. What about (frozen) sets?
+        if pd.isnull(value1) and pd.isnull(value2):
+            raise Exception("Both values are null")
+        elif pd.isnull(value1):
+            idx = self.answers[col2] == value2
+        elif pd.isnull(value2):
+            idx = self.answers[col1] == value1
+        else:
+            idx1 = (self.answers[col1] == value1) * (self.answers[col2] == value2)
+            idx2 = (self.answers[col1] == value2) * (self.answers[col2] == value1)
+            idx = idx1 | idx2
         return self.answers.loc[idx, 'answer']
 
     def _answer_exists(self):
