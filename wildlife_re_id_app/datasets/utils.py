@@ -1,4 +1,6 @@
-def get_index(dataset, image_id):
+from wildlife_datasets.datasets import WildlifeDataset
+
+def get_index(dataset: WildlifeDataset, image_id: int | str) -> int | None:
     idx = dataset.metadata['image_id'] == image_id
     if idx.sum() > 1:
         raise ValueError('image_id found multiple times.')
