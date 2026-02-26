@@ -7,9 +7,7 @@ class WildlifeDataset:
     segmentation_urls = None
     verification_url = None
 
-    def __init__(self, root_query, root_database):
-        self.root_query = root_query
-        self.root_database = root_database
+    def __init__(self):
         self.query = None
         self.database = None
     
@@ -35,21 +33,21 @@ class TurtlesOfSMSRC(WildlifeDataset):
     verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
     def __init__(self, root):
-        super().__init__(root, root)
+        self.root = root
     
     def download_dataset(self):
-        self.dataset_wd.get_data(self.root_query)
+        self.dataset_wd.get_data(self.root)
 
     def get_segmentation_files(self):
         file_name = os.path.join(self.query.root, "segmentation.csv")
         return (self.segmentation_urls, [file_name])
     
     def load(self):
-        self.query = self.dataset_wd(self.root_query, load_segmentation=True, img_load='bbox')
+        self.query = self.dataset_wd(self.root, load_segmentation=True, img_load='bbox')
         self.database = self.query
 
     def try_basic_loading(self):
-        self.dataset_wd(self.root_query)
+        self.dataset_wd(self.root)
 
 
 class TurtlewatchEgypt(WildlifeDataset):
@@ -58,9 +56,7 @@ class TurtlewatchEgypt(WildlifeDataset):
     # verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
 
     def __init__(self):
-        # TODO: hacky
-        # TODO: in general, I do not like that dataset.root_query appears in the app
-        super().__init__(None, None)
+        pass
     
     def download_dataset(self):
         raise NotImplementedError()
