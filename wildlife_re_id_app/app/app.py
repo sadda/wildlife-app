@@ -41,6 +41,13 @@ class App:
         df = pd.read_csv(DATA_CSV)
         assert isinstance(df.index, pd.RangeIndex)
 
+        # Check if segmentation data exist
+        paths, _ = self.dataset.get_segmentation_files()
+        for path in paths:
+            if not os.path.exists(path):
+                self.download_segmentation()
+                break
+
         # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)

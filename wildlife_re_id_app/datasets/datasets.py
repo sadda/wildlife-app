@@ -40,12 +40,11 @@ class TurtlesOfSMSRC(WildlifeDataset):
     def download_dataset(self):
         self.dataset_wd.get_data(self.root_query)
 
+    def get_segmentation_files(self):
+        file_name = os.path.join(self.query.root, "segmentation.csv")
+        return (self.segmentation_urls, [file_name])
+    
     def load(self):
-        # Check whether segmentations are present
-        segmentation_csv = os.path.join(self.root_query, 'segmentation.csv')
-        if not os.path.exists(segmentation_csv):
-            self.download_segmentation(segmentation_csv)
-        # Load the class with segmentations
         self.query = self.dataset_wd(self.root_query, load_segmentation=True, img_load='bbox')
         self.database = self.query
 
