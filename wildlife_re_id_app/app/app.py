@@ -48,7 +48,7 @@ class App:
         assert isinstance(df.index, pd.RangeIndex)
 
         # Check if segmentation data exist
-        paths, _ = self.dataset.get_segmentation_files()
+        _, paths = self.dataset.get_segmentation_files()
         for path in paths:
             if not os.path.exists(path):
                 self.download_segmentation()
