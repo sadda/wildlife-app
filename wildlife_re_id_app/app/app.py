@@ -194,9 +194,6 @@ class App:
 
     def on_same(self, event=None) -> None:
         self._log_time()
-        # TODO: this is wrong. we also need to remove connection if same previously
-        # TODO: may cause double connection if there already
-        self._graph_add_same()
         self.answer(ANS_POS)
 
     def on_diff(self, event=None) -> None:
@@ -273,7 +270,7 @@ class App:
         self.answers["identity1_convert"] = convert_identity(self.answers, "identity1", "encounter1")
         self.answers["identity2_convert"] = convert_identity(self.answers, "identity2", "encounter2")        
         self._graph_init()
-        self._graph_init_check()
+        self._graph_check()
 
     @property
     def mask_same(self):
@@ -283,10 +280,17 @@ class App:
     def mask_diff(self):
         return self.answers["answer"] == ANS_NEG
 
-    def _graph_add_same(self):
+    def _update_answer(self, answer_new: str) -> None:
+        answer_old = self.answers.loc[self.idx, "answer"]
         a = self.answers.iloc[self.idx]["identity1_convert"]
         b = self.answers.iloc[self.idx]["identity2_convert"]
-        self.G_same.add_edge(a, b)
+        if answer_new == ANS_POS:
+            if not self.G_same.has_edge(a, b):
+                self.G_same.add_edge(a, b)
+        elif answer_old == ANS_POS:
+            self.G_same.remove_edge(a, b)
+        self.answers.loc[self.idx, "answer"] = answer_new
+        self._graph_check()
 
     def _graph_init(self):
         nodes = np.unique(self.answers["identity1_convert"].to_list() + self.answers["identity2_convert"].to_list())
@@ -296,12 +300,11 @@ class App:
         self.G_same.add_nodes_from(nodes.tolist())
         self.G_same.add_edges_from(edges_same.tolist())
 
-    def _graph_init_check(self):
+    def _graph_check(self):
         for _, answer in self.answers[self.mask_diff].iterrows():
             if nx.has_path(self.G_same, answer["identity1_convert"], answer["identity2_convert"]):
                 raise ValueError("Cluster contains both same and different.")
 
-    # TODO: check
     def _answer_exists(self) -> bool:
         # Get the identities
         a = self.answers.iloc[self.idx]["identity1_convert"]
@@ -386,7 +389,7 @@ class App:
         self._reset_time()
 
     def answer(self, answer) -> None:
-        self.answers.loc[self.idx, "answer"] = answer
+        self._update_answer(answer)
         self._save_csv()
         self.next()
 
