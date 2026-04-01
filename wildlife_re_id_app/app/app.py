@@ -7,12 +7,13 @@ from collections.abc import Callable
 from tkinter import messagebox, ttk
 from typing import cast
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 
 from ..datasets import WildlifeDataset
-from .utils import download_file
+from .utils import convert_identity, download_file
 
 DATA_CSV = "verification_data.csv"
 SEGMENTATION_CSV = "segmentation.csv"
@@ -164,14 +165,6 @@ class App:
         new_size = (int(w * scale), int(h * scale))
         return img.resize(new_size, Image.Resampling.LANCZOS)
 
-    def _initialize_skipping(self) -> None:
-        idx = self.idx
-        self.answers["skipping"] = False
-        for i in range(len(self.answers)):
-            self.idx = i
-            self._update_skipping()
-        self.idx = idx
-
     def _log_time(self) -> None:
         current = cast(float, self.answers.loc[self.idx, "time"])
         elapsed = self._elapsed_since_plot()
@@ -182,7 +175,7 @@ class App:
         self.plot_time = time.perf_counter()
 
     def _save_csv(self) -> None:
-        answers_save = self.answers.drop(["index1", "index2", "skipping"], axis=1)
+        answers_save = self.answers.drop(["index1", "index2", "identity1_convert", "identity2_convert"], axis=1)
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self) -> None:
@@ -192,21 +185,18 @@ class App:
             assert isinstance(matching_part, str)
             name = matching_part.upper()
             done = ~answers_subset["answer"].isnull()
-            skipping = answers_subset["skipping"]
 
             n = len(answers_subset)
             n_done = done.sum()
-            n_skipping = (skipping * (~done)).sum()
 
-            self.text_box.insert(f"{i + 1}.0", f"{name} ({n}): done {n_done}, remaining {n - n_done - n_skipping}.\n")
+            self.text_box.insert(f"{i + 1}.0", f"{name} ({n}): done {n_done}.\n")
         self.text_box.config(state="disabled")
-
-    def _update_skipping(self) -> None:
-        idx, value = self._answer_exists()
-        self.answers.loc[idx, "skipping"] = value
 
     def on_same(self, event=None) -> None:
         self._log_time()
+        # TODO: this is wrong. we also need to remove connection if same previously
+        # TODO: may cause double connection if there already
+        self._graph_add_same()
         self.answer(ANS_POS)
 
     def on_diff(self, event=None) -> None:
@@ -279,55 +269,66 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
-    def _answer_subset(self, col1: str, col2: str, value1: str, value2: str) -> pd.Series:
-        # TODO: Handle nulls for database encounters differently. What about (frozen) sets?
-        if pd.isnull(value1) and pd.isnull(value2):
-            raise Exception("Both values are null")
-        elif pd.isnull(value1):
-            idx = self.answers[col2] == value2
-        elif pd.isnull(value2):
-            idx = self.answers[col1] == value1
-        else:
-            idx1 = (self.answers[col1] == value1) & (self.answers[col2] == value2)
-            idx2 = (self.answers[col1] == value2) & (self.answers[col2] == value1)
-            idx = idx1 | idx2
-        return self.answers.loc[idx, "answer"]
+    def _initialize_skipping(self):
+        self.answers["identity1_convert"] = convert_identity(self.answers, "identity1", "encounter1")
+        self.answers["identity2_convert"] = convert_identity(self.answers, "identity2", "encounter2")        
+        self._graph_init()
+        self._graph_init_check()
 
-    def _answer_exists(self) -> tuple[pd.Index, bool]:
-        answer_values = [ANS_NEG, ANS_POS]
-        encounter1 = self.answers.iloc[self.idx]["encounter1"]
-        encounter2 = self.answers.iloc[self.idx]["encounter2"]
-        identity1 = self.answers.iloc[self.idx]["identity1"]
-        identity2 = self.answers.iloc[self.idx]["identity2"]
-        if identity1 == "unknown" and identity2 == "unknown":
-            # Both identities are unknown, do nothing
-            pass
-        elif identity1 == "unknown":
-            # First identity is unknown, disable first encounter and second identity
-            if not pd.isnull(encounter1):            
-                answers_subset = self._answer_subset("encounter1", "identity2", encounter1, identity2)
-                answers = answers_subset.isin(answer_values)
-                return answers.index, answers.any()
-        elif identity2 == "unknown":
-            # Second identity is unknown, disable first identity and second encounter
-            if not pd.isnull(encounter2):
-                answers_subset = self._answer_subset("identity1", "encounter2", identity1, encounter2)
-                answers = answers_subset.isin(answer_values)
-                return answers.index, answers.any()
-        else:
-            # Both identities are known, disable whenever identities are equal
-            answers_subset = self._answer_subset("identity1", "identity2", identity1, identity2)
-            answers = answers_subset.isin(answer_values)
-            return answers.index, answers.any()
-        value = self.answers.loc[self.idx, "answer"]
-        return pd.Index([self.idx]), value in answer_values
+    @property
+    def mask_same(self):
+        return self.answers["answer"] == ANS_POS
+
+    @property
+    def mask_diff(self):
+        return self.answers["answer"] == ANS_NEG
+
+    def _graph_add_same(self):
+        a = self.answers.iloc[self.idx]["identity1_convert"]
+        b = self.answers.iloc[self.idx]["identity2_convert"]
+        self.G_same.add_edge(a, b)
+
+    def _graph_init(self):
+        nodes = np.unique(self.answers["identity1_convert"].to_list() + self.answers["identity2_convert"].to_list())
+        edges_same = self.answers.loc[self.mask_same, ["identity1_convert", "identity2_convert"]].to_numpy()
+
+        self.G_same = nx.Graph()
+        self.G_same.add_nodes_from(nodes.tolist())
+        self.G_same.add_edges_from(edges_same.tolist())
+
+    def _graph_init_check(self):
+        for _, answer in self.answers[self.mask_diff].iterrows():
+            if nx.has_path(self.G_same, answer["identity1_convert"], answer["identity2_convert"]):
+                raise ValueError("Cluster contains both same and different.")
+
+    # TODO: check
+    def _answer_exists(self) -> bool:
+        # Get the identities
+        a = self.answers.iloc[self.idx]["identity1_convert"]
+        b = self.answers.iloc[self.idx]["identity2_convert"]
+        
+        # If the identites are connected by same, it is predicted
+        if nx.has_path(self.G_same, a, b):
+            return True
+
+        # Extract the components where the identities belong
+        comp_a = nx.node_connected_component(self.G_same, a)
+        comp_b = nx.node_connected_component(self.G_same, b)
+
+        # Check whether identities are connected by exactly one diff
+        diff_edges = self.answers.loc[self.mask_diff, ["identity1_convert", "identity2_convert"]].to_numpy()
+        for u, v in diff_edges:
+            if (u in comp_a and v in comp_b) or (v in comp_a and u in comp_b):
+                return True
+
+        return False
 
     def _skip_plotting(self) -> bool:
         row = self.answers.iloc[self.idx]
         if self.skip_filled:
-            return row["skipping"] or not pd.isnull(row["answer"])
+            return self._answer_exists() or not pd.isnull(row["answer"])
         else:
-            return row["skipping"] and pd.isnull(row["answer"])
+            return self._answer_exists() and pd.isnull(row["answer"])
 
     def next_prev(self) -> None:
         if self.increase:
@@ -386,7 +387,6 @@ class App:
 
     def answer(self, answer) -> None:
         self.answers.loc[self.idx, "answer"] = answer
-        self._update_skipping()
         self._save_csv()
         self.next()
 
