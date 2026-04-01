@@ -358,6 +358,18 @@ class App:
         assert isinstance(img2, Image.Image)
         return img1, img2
 
+    def _show_image(self, img, position):
+        if position == "l":
+            self.canvas_l.delete("all")
+            self.tk_img_l = ImageTk.PhotoImage(self._fit_to_canvas(img))
+            self.canvas_l.create_image(200, 200, image=self.tk_img_l)
+        elif position == "r":
+            self.canvas_r.delete("all")
+            self.tk_img_r = ImageTk.PhotoImage(self._fit_to_canvas(img))
+            self.canvas_r.create_image(200, 200, image=self.tk_img_r)
+        else:
+            raise ValueError("Position must be l or r.")
+        
     def load_row(self) -> None:
         if not (0 <= self.idx < len(self.answers)):
             if self.skip_filled:
@@ -383,14 +395,8 @@ class App:
             text = f"{text} - {answer.upper()}"
         self.counter_var.set(text)
 
-        self.canvas_l.delete("all")
-        self.canvas_r.delete("all")
-
-        self.tk_img1 = ImageTk.PhotoImage(self._fit_to_canvas(img1))
-        self.tk_img2 = ImageTk.PhotoImage(self._fit_to_canvas(img2))
-
-        self.canvas_l.create_image(200, 200, image=self.tk_img1)
-        self.canvas_r.create_image(200, 200, image=self.tk_img2)
+        self._show_image(img1, "l")
+        self._show_image(img2, "r")
 
         self.skip_filled = False
         self._set_text()
