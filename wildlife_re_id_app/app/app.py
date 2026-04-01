@@ -20,7 +20,7 @@ SEGMENTATION_CSV = "segmentation.csv"
 ANS_CSV = "answers.csv"
 ANS_POS = "same"
 ANS_NEG = "different"
-ANS_UNK = "unknown"
+ANS_UNK = ""
 CANVAS_SIZE = 400
 
 
@@ -281,16 +281,19 @@ class App:
         return self.answers["answer"] == ANS_NEG
 
     def _update_answer(self, answer_new: str) -> None:
+        # TODO: the whole logic will break if A-B same, B-C different, A-C different and the user changes B-C to same
         answer_old = self.answers.loc[self.idx, "answer"]
         a = self.answers.iloc[self.idx]["identity1_convert"]
         b = self.answers.iloc[self.idx]["identity2_convert"]
         if answer_new == ANS_POS:
-            if not self.G_same.has_edge(a, b):
+            # To keep the forest structure (no cycles), add only if not connected, otherwise, change answer to ""
+            if not nx.has_path(self.G_same, a, b):
                 self.G_same.add_edge(a, b)
+            else:
+                answer_new = ANS_UNK
         elif answer_old == ANS_POS:
             self.G_same.remove_edge(a, b)
         self.answers.loc[self.idx, "answer"] = answer_new
-        self._graph_check()
 
     def _graph_init(self):
         nodes = np.unique(self.answers["identity1_convert"].to_list() + self.answers["identity2_convert"].to_list())
@@ -301,6 +304,8 @@ class App:
         self.G_same.add_edges_from(edges_same.tolist())
 
     def _graph_check(self):
+        if not nx.is_forest(self.G_same):
+            raise ValueError("G_same must not have any cycles")
         for _, answer in self.answers[self.mask_diff].iterrows():
             if nx.has_path(self.G_same, answer["identity1_convert"], answer["identity2_convert"]):
                 raise ValueError("Cluster contains both same and different.")
@@ -326,12 +331,15 @@ class App:
 
         return False
 
+    def _answer_empty(self) -> bool:
+        answer = self.answers.iloc[self.idx]["answer"]
+        return pd.isnull(answer) or answer == ""
+    
     def _skip_plotting(self) -> bool:
-        row = self.answers.iloc[self.idx]
         if self.skip_filled:
-            return self._answer_exists() or not pd.isnull(row["answer"])
+            return self._answer_exists() or not self._answer_empty()
         else:
-            return self._answer_exists() and pd.isnull(row["answer"])
+            return self._answer_exists() and self._answer_empty()
 
     def next_prev(self) -> None:
         if self.increase:
