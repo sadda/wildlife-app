@@ -100,6 +100,8 @@ class App:
             ("Download dataset", None, self.download_dataset, 2, 0),
             ("Download segmentation", None, self.download_segmentation, 2, 1),
             ("Download verification", None, self.download_verification, 2, 2),
+            ("Left toggle (R)", "r", self.on_toggle_left, 0, 3),
+            ("Right toggle (F)", "f", self.on_toggle_right, 1, 3),
         ]
 
     def _build_ui(self) -> None:
@@ -205,6 +207,12 @@ class App:
         self._log_time()
         self.answer(ANS_UNK)
 
+    def on_toggle_left(self, event=None) -> None:
+        self._toggle("l")
+
+    def on_toggle_right(self, event=None) -> None:
+        self._toggle("r")
+
     def on_prev(self, event=None) -> None:
         self._log_time()
         self.prev()
@@ -266,6 +274,10 @@ class App:
     def close_app(self, message: str = "The application will now close.") -> None:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
+
+    def _toggle(self, position):
+        # TODO: "encounter1" and "encounter2" is required
+        pass
 
     def _initialize_skipping(self):
         self.answers["identity1_convert"] = convert_identity(self.answers, "identity1", "encounter1")
