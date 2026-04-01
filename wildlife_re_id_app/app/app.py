@@ -179,6 +179,7 @@ class App:
         answers_save.to_csv(ANS_CSV, index=False)
 
     def _set_text(self) -> None:
+        # TODO: add more information?
         self.text_box.config(state="normal")
         self.text_box.delete("1.0", "end")
         for i, (matching_part, answers_subset) in enumerate(self.answers.groupby("matching_part")):
