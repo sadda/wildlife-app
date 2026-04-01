@@ -89,6 +89,8 @@ class App:
             self._initialize_skipping()
             self.load_row()
 
+        self._reset_i_lr()
+
     def _actions(self) -> list[tuple[str, str | None, Callable, int, int]]:
         return [
             ("Same (Q)", "q", self.on_same, 0, 0),
@@ -100,8 +102,9 @@ class App:
             ("Download dataset", None, self.download_dataset, 2, 0),
             ("Download segmentation", None, self.download_segmentation, 2, 1),
             ("Download verification", None, self.download_verification, 2, 2),
-            ("Left toggle (R)", "r", self.on_toggle_left, 0, 3),
-            ("Right toggle (F)", "f", self.on_toggle_right, 1, 3),
+            ("Toggle heads left (R)", "r", self.on_toggle_left, 0, 3),
+            ("Toggle heads right (F)", "f", self.on_toggle_right, 1, 3),
+            ("Reset (V)", "v", self.on_reset, 2, 3),
         ]
 
     def _build_ui(self) -> None:
@@ -221,6 +224,12 @@ class App:
         self._log_time()
         self.next()
 
+    def on_reset(self, event=None) -> None:
+        img1, img2 = self.load_images()
+        self._show_image(img1, "l")
+        self._show_image(img2, "r")
+        self._reset_i_lr()
+    
     def download_dataset(self, event=None) -> None:
         confirm = messagebox.askyesno(
             title="Download dataset",
@@ -275,9 +284,42 @@ class App:
         messagebox.showinfo("Exit", message)
         self.root.destroy()
 
+    def _reset_i_lr(self) -> None:
+        self.i_l = 0
+        self.i_r = 0
+
+    def _update_i_lr(self, n: int, position: str) -> None:
+        if position == "l":
+            self.i_l = (self.i_l + 1) % n
+        elif position == "r":
+            self.i_r = (self.i_r + 1) % n
+
     def _toggle(self, position):
         # TODO: "encounter1" and "encounter2" is required
-        pass
+        if position == "l":
+            col_encounter = "encounter1"
+            dataset = self.dataset.query
+            i = self.i_l
+        elif position == "r":
+            col_encounter = "encounter2"
+            dataset = self.dataset.database
+            i = self.i_r
+        else:
+            raise ValueError("Position must be l or r.")
+        assert dataset is not None
+
+        # TODO: do not hard-code heads and encounter_id
+        encounter = self.answers.iloc[self.idx][col_encounter]
+        mask1 = dataset.metadata["label"] == "head"
+        mask2 = dataset.metadata["encounter_id"] == encounter
+        metadata_reduced = dataset.metadata[mask1 & mask2]
+        metadata_reduced = metadata_reduced.sort_values("score", ascending=False)
+        index = dataset.metadata.index.get_indexer(metadata_reduced.index)
+        
+        if len(index) > 0:
+            img = dataset[index[i]]
+            self._show_image(img, position)
+            self._update_i_lr(len(index), position)
 
     def _initialize_skipping(self):
         self.answers["identity1_convert"] = convert_identity(self.answers, "identity1", "encounter1")
@@ -360,14 +402,27 @@ class App:
         else:
             self.prev()
 
-    def load_images(self) -> tuple[Image.Image, Image.Image]:
-        assert self.dataset.query is not None
+    def load_image_database(self, i: int | None = None) -> Image.Image:
         assert self.dataset.database is not None
-        row = self.answers.iloc[self.idx]
-        img1 = self.dataset.query[row["index1"]]
-        img2 = self.dataset.database[row["index2"]]
-        assert isinstance(img1, Image.Image)
-        assert isinstance(img2, Image.Image)
+        if i is None:
+            i = self.idx
+        row = self.answers.iloc[i]
+        img = self.dataset.database[row["index2"]]
+        assert isinstance(img, Image.Image)
+        return img
+
+    def load_image_query(self, i: int | None = None) -> Image.Image:
+        assert self.dataset.query is not None
+        if i is None:
+            i = self.idx
+        row = self.answers.iloc[i]
+        img = self.dataset.query[row["index1"]]
+        assert isinstance(img, Image.Image)
+        return img
+
+    def load_images(self, **kwargs) -> tuple[Image.Image, Image.Image]:
+        img1 = self.load_image_query(**kwargs)
+        img2 = self.load_image_database(**kwargs)
         return img1, img2
 
     def _show_image(self, img, position):
@@ -412,6 +467,7 @@ class App:
 
         self.skip_filled = False
         self._set_text()
+        self._reset_i_lr()
 
         self._reset_time()
 
