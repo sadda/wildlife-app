@@ -59,9 +59,7 @@ class TurtlesOfSMSRC(WildlifeDataset):
         self.dataset_wd.get_data(self.root)
 
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
-        assert self.query is not None
-        assert self.query.root is not None
-        file_name = os.path.join(self.query.root, "segmentation.csv")
+        file_name = os.path.join(self.root, "segmentation.csv")
         return (self.segmentation_urls, [file_name])
 
     def load(self) -> None:

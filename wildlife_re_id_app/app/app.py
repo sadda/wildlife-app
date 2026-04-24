@@ -39,9 +39,6 @@ class App:
                 self.root.destroy()
                 return
 
-        # Load the dataset
-        dataset.load()
-
         # Load the verification data
         if not os.path.exists(DATA_CSV):
             self.download_verification()
@@ -54,6 +51,9 @@ class App:
             if not os.path.exists(path):
                 self.download_segmentation()
                 break
+
+        # Load the dataset
+        dataset.load()
 
         # Load the answer data
         if os.path.exists(ANS_CSV):
