@@ -3,7 +3,10 @@ import os
 import pandas as pd
 from wildlife_datasets import datasets as wd_datasets
 
-DEFAULT_SCORE_MIN = 0.8
+SCORE_THRESHOLD = 0.8
+SCORE_MIN = 0.3
+MAX_PER_ENCOUNTER = 10
+MIN_PER_ENCOUNTER = 2
 
 
 def combine_datasets(datasets, encounter_prefixes=None, **kwargs):
@@ -23,14 +26,23 @@ def combine_datasets(datasets, encounter_prefixes=None, **kwargs):
     return wd_datasets.WildlifeDataset(root=None, df=metadatas, **kwargs)
 
 
-def combine_datasets_twe(master_root, roots, file_name, load_segmentation=True, encounter_prefixes=None, **kwargs):
+def combine_datasets_twe(
+    master_root,
+    roots,
+    file_name,
+    load_segmentation=True,
+    encounter_prefixes=None,
+    **kwargs,
+):
 
     dfs = []
     if encounter_prefixes is None:
         encounter_prefixes = range(len(roots))
     for root, encounter_prefix in zip(roots, encounter_prefixes):
         dataset = wd_datasets.TurtlewatchEgypt_New(
-            f"{master_root}/{root}", file_name=file_name, load_segmentation=load_segmentation
+            f"{master_root}/{root}",
+            file_name=file_name,
+            load_segmentation=load_segmentation,
         )
         dataset.df["path"] = root.split("/")[-1] + "/" + dataset.df["path"]
         dataset.df["encounter_id"] = dataset.df["encounter_id"].apply(lambda x: f"{encounter_prefix}_{x}")
@@ -73,12 +85,24 @@ class TurtlesSegmented(Dataset):
         if database_query_matching:
             matching_parts = {
                 "heads": {"labels": ["head"], "cols_equal": [], "cols_unequal": []},
-                "front flippers": {"labels": ["flipper_fl", "flipper_fr"], "cols_equal": [], "cols_unequal": []},
-                "rear flippers": {"labels": ["flipper_rl", "flipper_rr"], "cols_equal": [], "cols_unequal": []},
+                "front flippers": {
+                    "labels": ["flipper_fl", "flipper_fr"],
+                    "cols_equal": [],
+                    "cols_unequal": ["label", "orientation"],
+                },
+                "rear flippers": {
+                    "labels": ["flipper_rl", "flipper_rr"],
+                    "cols_equal": [],
+                    "cols_unequal": ["label", "orientation"],
+                },
             }
         else:
             matching_parts = {
-                "heads": {"labels": ["head"], "cols_equal": ["identity", "encounter_id"], "cols_unequal": []},
+                "heads": {
+                    "labels": ["head"],
+                    "cols_equal": ["identity", "encounter_id"],
+                    "cols_unequal": [],
+                },
                 "front flippers": {
                     "labels": ["flipper_fl", "flipper_fr"],
                     "cols_equal": ["identity", "encounter_id"],
@@ -92,18 +116,53 @@ class TurtlesSegmented(Dataset):
             }
         super().__init__(dataset, matching_parts)
 
+    def select_subset(
+        self,
+        score_threshold=SCORE_THRESHOLD,
+        score_min=SCORE_MIN,
+        max_per_encounter=MAX_PER_ENCOUNTER,
+        min_per_encounter=MIN_PER_ENCOUNTER,
+    ):
+
+        mask = []
+        for _, df_label in self.dataset.metadata.groupby("label"):
+            for _, df_encounter in df_label.groupby("encounter_id"):
+                df_encounter = df_encounter.sort_values("score", ascending=False)
+                df_encounter = df_encounter.iloc[:max_per_encounter]
+                df_encounter = df_encounter[df_encounter["score"] >= score_min]
+                n_above = (df_encounter["score"] >= score_threshold).sum()
+                if n_above >= min_per_encounter:
+                    df_encounter = df_encounter.iloc[:n_above]
+                else:
+                    df_encounter = df_encounter.iloc[:min_per_encounter]
+                mask.extend(df_encounter.index)
+
+        self.dataset = self.dataset.get_subset(mask)
+
 
 class TurtlesFlippersMerged(Dataset):
     def __init__(self, dataset, database_query_matching):
         if database_query_matching:
             matching_parts = {
                 "heads": {"labels": ["head"], "cols_equal": [], "cols_unequal": []},
-                "front flippers": {"labels": ["front flipper"], "cols_equal": [], "cols_unequal": []},
-                "rear flippers": {"labels": ["rear flipper"], "cols_equal": [], "cols_unequal": []},
+                "front flippers": {
+                    "labels": ["front flipper"],
+                    "cols_equal": [],
+                    "cols_unequal": ["label", "orientation"],
+                },
+                "rear flippers": {
+                    "labels": ["rear flipper"],
+                    "cols_equal": [],
+                    "cols_unequal": ["label", "orientation"],
+                },
             }
         else:
             matching_parts = {
-                "heads": {"labels": ["head"], "cols_equal": ["identity", "encounter_id"], "cols_unequal": []},
+                "heads": {
+                    "labels": ["head"],
+                    "cols_equal": ["identity", "encounter_id"],
+                    "cols_unequal": [],
+                },
                 "front flippers": {
                     "labels": ["front flipper"],
                     "cols_equal": ["identity", "encounter_id"],
@@ -119,36 +178,70 @@ class TurtlesFlippersMerged(Dataset):
 
 
 class TurtlesOfSMSRC(TurtlesSegmented):
-    def __init__(self, root, is_database, score_min=DEFAULT_SCORE_MIN, **kwargs):
-        img_load = kwargs.pop("img_load", "bbox")
-        load_label = kwargs.pop("load_label", True)
+    def __init__(self, root, is_database, dataset_kwargs=None, subset_kwargs=None):
+        dataset_kwargs = dataset_kwargs or {}
+        subset_kwargs = subset_kwargs or {}
+
+        img_load = dataset_kwargs.pop("img_load", "bbox")
+        load_label = dataset_kwargs.pop("load_label", True)
+
         dataset = wd_datasets.TurtlesOfSMSRC(
-            root, img_load=img_load, load_segmentation=True, load_label=load_label, **kwargs
+            root,
+            img_load=img_load,
+            load_segmentation=True,
+            load_label=load_label,
+            **dataset_kwargs,
         )
-        mask = dataset.metadata["score"] >= score_min
-        super().__init__(dataset.get_subset(mask), is_database)
+        super().__init__(dataset, is_database)
+        self.select_subset(**subset_kwargs)
 
 
 class TurtlewatchEgypt_Citizen(TurtlesSegmented):
-    def __init__(self, root, is_database, score_min=DEFAULT_SCORE_MIN, **kwargs):
-        img_load = kwargs.pop("img_load", "bbox")
-        load_label = kwargs.pop("load_label", True)
+    def __init__(self, root, is_database, dataset_kwargs=None, subset_kwargs=None):
+        dataset_kwargs = dataset_kwargs or {}
+        subset_kwargs = subset_kwargs or {}
+
+        img_load = dataset_kwargs.pop("img_load", "bbox")
+        load_label = dataset_kwargs.pop("load_label", True)
+
         dataset = wd_datasets.TurtlewatchEgypt_Citizen(
-            root, img_load=img_load, load_segmentation=True, load_label=load_label, **kwargs
+            root,
+            img_load=img_load,
+            load_segmentation=True,
+            load_label=load_label,
+            **dataset_kwargs,
         )
-        mask = dataset.metadata["score"] >= score_min
-        super().__init__(dataset.get_subset(mask), is_database)
+        super().__init__(dataset, is_database)
+        self.select_subset(**subset_kwargs)
 
 
 class TurtlewatchEgypt_New(TurtlesSegmented):
-    def __init__(self, root_master, roots, is_database, file_name, score_min=DEFAULT_SCORE_MIN, **kwargs):
-        img_load = kwargs.pop("img_load", "bbox")
-        load_label = kwargs.pop("load_label", True)
+    def __init__(
+        self,
+        root_master,
+        roots,
+        is_database,
+        file_name,
+        dataset_kwargs=None,
+        subset_kwargs=None,
+    ):
+        dataset_kwargs = dataset_kwargs or {}
+        subset_kwargs = subset_kwargs or {}
+
+        img_load = dataset_kwargs.pop("img_load", "bbox")
+        load_label = dataset_kwargs.pop("load_label", True)
+
         dataset = combine_datasets_twe(
-            root_master, roots, file_name, img_load=img_load, load_segmentation=True, load_label=load_label, **kwargs
+            root_master,
+            roots,
+            file_name,
+            img_load=img_load,
+            load_segmentation=True,
+            load_label=load_label,
+            **dataset_kwargs,
         )
-        mask = dataset.metadata["score"] >= score_min
-        super().__init__(dataset.get_subset(mask), is_database)
+        super().__init__(dataset, is_database)
+        self.select_subset(**subset_kwargs)
 
 
 class SeaTurtleID2022(TurtlesFlippersMerged):
@@ -181,16 +274,21 @@ class TurtlewatchEgypt_Master(TurtlesFlippersMerged):
         root_flippers_r,
         database_query_matching,
         file_name,
-        score_min=DEFAULT_SCORE_MIN,
-        **kwargs,
+        dataset_kwargs=None,
+        score_min=SCORE_THRESHOLD,
     ):
-        load_label = kwargs.pop("load_label", True)
+        dataset_kwargs = dataset_kwargs or {}
+        load_label = dataset_kwargs.pop("load_label", True)
 
         metadata_h = wd_datasets.TurtlewatchEgypt_Master(
-            root_heads, file_name=file_name, load_segmentation=True, **kwargs
+            root_heads, file_name=file_name, load_segmentation=True, **dataset_kwargs
         ).metadata
-        metadata_f = wd_datasets.TurtlewatchEgypt_Master(root_flippers_f, file_name=file_name, **kwargs).metadata
-        metadata_r = wd_datasets.TurtlewatchEgypt_Master(root_flippers_r, file_name=file_name, **kwargs).metadata
+        metadata_f = wd_datasets.TurtlewatchEgypt_Master(
+            root_flippers_f, file_name=file_name, **dataset_kwargs
+        ).metadata
+        metadata_r = wd_datasets.TurtlewatchEgypt_Master(
+            root_flippers_r, file_name=file_name, **dataset_kwargs
+        ).metadata
 
         convertion = {
             "flipper_fr": "front flipper",
@@ -209,7 +307,11 @@ class TurtlewatchEgypt_Master(TurtlesFlippersMerged):
 
         metadata = pd.concat((metadata_h, metadata_f, metadata_r))
         dataset = wd_datasets.TurtlewatchEgypt_Master(
-            root=None, df=metadata, load_label=load_label, file_name=file_name, **kwargs
+            root=None,
+            df=metadata,
+            load_label=load_label,
+            file_name=file_name,
+            **dataset_kwargs,
         )
         super().__init__(dataset, database_query_matching)
 
@@ -223,15 +325,36 @@ class TurtlewatchEgypt_Combined(Dataset):
         root_flippers_f,
         root_flippers_r,
         file_name,
-        score_min=DEFAULT_SCORE_MIN,
-        **kwargs,
+        dataset_kwargs=None,
+        subset_kwargs=None,
     ):
+        dataset_kwargs = dataset_kwargs or {}
+        subset_kwargs = subset_kwargs or {}
 
-        load_label = kwargs.pop("load_label", True)
-        dataset1 = TurtlewatchEgypt_New(root_master, roots, False, file_name, score_min=score_min, **kwargs)
-        dataset2 = TurtlewatchEgypt_Master(
-            root_heads, root_flippers_f, root_flippers_r, False, file_name, score_min=score_min, **kwargs
+        load_label = dataset_kwargs.pop("load_label", True)
+        score_min = subset_kwargs.pop("score_min", SCORE_MIN)
+
+        dataset1 = TurtlewatchEgypt_New(
+            root_master,
+            roots,
+            False,
+            file_name,
+            dataset_kwargs=dataset_kwargs,
+            subset_kwargs=subset_kwargs,
         )
-        dataset = combine_datasets([dataset1.dataset, dataset2.dataset], load_label=load_label, **kwargs)
+        dataset2 = TurtlewatchEgypt_Master(
+            root_heads,
+            root_flippers_f,
+            root_flippers_r,
+            False,
+            file_name,
+            dataset_kwargs=dataset_kwargs,
+            score_min=score_min,
+        )
+        dataset = combine_datasets(
+            [dataset1.dataset, dataset2.dataset],
+            load_label=load_label,
+            **dataset_kwargs,
+        )
         matching_parts = combine_matching_parts(dataset1.matching_parts, dataset2.matching_parts)
         super().__init__(dataset, matching_parts)
