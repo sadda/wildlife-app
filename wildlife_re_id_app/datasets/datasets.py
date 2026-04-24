@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 import wildlife_datasets
 from wildlife_datasets.datasets import WildlifeDataset as WD
 
@@ -15,13 +16,6 @@ class WildlifeDataset:
         self.query: WD | None = None
         self.database: WD | None = None
 
-    def is_downloaded(self) -> bool:
-        try:
-            self.try_basic_loading()
-            return True
-        except Exception:
-            return False
-
     def get_index_database(self, i) -> int | None:
         assert self.database is not None
         return utils.get_index(self.database, i)
@@ -33,13 +27,13 @@ class WildlifeDataset:
     def download_dataset(self) -> None:
         raise NotImplementedError("Must be implemented by subclasses.")
 
+    def is_downloaded(self) -> bool:
+        raise NotImplementedError("Must be implemented by subclasses.")
+
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
         raise NotImplementedError("Must be implemented by subclasses.")
 
     def load(self) -> None:
-        raise NotImplementedError("Must be implemented by subclasses.")
-
-    def try_basic_loading(self):
         raise NotImplementedError("Must be implemented by subclasses.")
 
 
@@ -58,6 +52,10 @@ class TurtlesOfSMSRC(WildlifeDataset):
     def download_dataset(self) -> None:
         self.dataset_wd.get_data(self.root)
 
+    def is_downloaded(self) -> bool:
+        file_name = os.path.join(self.root, "metadata.csv")
+        return os.path.exists(file_name)
+    
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
         file_name = os.path.join(self.root, "segmentation.csv")
         return (self.segmentation_urls, [file_name])
@@ -66,51 +64,59 @@ class TurtlesOfSMSRC(WildlifeDataset):
         self.query = self.dataset_wd(self.root, load_segmentation=True, img_load="bbox")
         self.database = self.query
 
-    def try_basic_loading(self) -> None:
-        self.dataset_wd(self.root)
-
 
 class TurtlewatchEgypt(WildlifeDataset):
-    # dataset_wd = wildlife_datasets.datasets.TurtlesOfSMSRC
-    segmentation_urls = []
-    # verification_url = 'https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv'
+    dataset_wd_query = wildlife_datasets.datasets.TurtlewatchEgypt_Citizen
+    segmentation_urls = [
+        "https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/Turtlewatch_Egypt/segmentation.csv"
+    ]
+    verification_url = (
+        "https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/Turtlewatch_Egypt/verification_data.csv"
+    )
 
     def __init__(
             self,
-            file_name: str,
+            file_name_individuals: str,
+            file_name_downloads: str,
             root_citizen: str,
             root_heads: str,
             root_flippers_f: str,
             root_flippers_r: str,
             ) -> None:
         
-        self.file_name = file_name
+        self.file_name_individuals = file_name_individuals
+        self.file_name_downloads = file_name_downloads
         self.root_citizen = root_citizen
         self.root_heads = root_heads
         self.root_flippers_f = root_flippers_f
         self.root_flippers_r = root_flippers_r
 
-    def download_dataset(self):
-        raise NotImplementedError()
+    def download_dataset(self) -> None:
+        data = pd.read_csv(self.file_name_downloads)
+        self.dataset_wd_query.get_data(self.root_citizen, data=data, force=True)
+
+    def is_downloaded(self) -> bool:
+        # TODO: return hard error for other datasets
+        file_name = os.path.join(self.root_citizen, "metadata.csv")
+        return os.path.exists(file_name)
 
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
-        # TODO: finish
-        return (self.segmentation_urls, [])
+        # TODO: add segmentation for master database
+        # TODO: check if master database contains additional files, it also loads
+        file_name = os.path.join(self.root_citizen, "segmentation.csv")
+        return (self.segmentation_urls, [file_name])
 
     def load(self) -> None:
+        dataset_kwargs_citizen = {"load_label": False}
+        dataset_kwargs_master = {"load_label": False, "check_files": False, "img_load": "bbox"}
+
         database_query_matching = False
-        self.query = TurtlewatchEgypt_Citizen(self.root_citizen, database_query_matching, load_label=False).dataset
+        self.query = TurtlewatchEgypt_Citizen(self.root_citizen, database_query_matching, dataset_kwargs=dataset_kwargs_citizen).dataset
         self.database = TurtlewatchEgypt_Master(
             self.root_heads,
             self.root_flippers_f,
             self.root_flippers_r,
             database_query_matching,
-            self.file_name,
-            check_files=False,
-            img_load="bbox",
-            load_label=False,
+            self.file_name_individuals,
+            dataset_kwargs=dataset_kwargs_master
         ).dataset
-
-    def try_basic_loading(self) -> None:
-        # TODO: finish
-        pass
