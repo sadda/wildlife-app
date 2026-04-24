@@ -3,4 +3,4 @@ pandas
 requests
 Pillow
 networkx
-wildlife-datasets @ git+https://github.com/WildlifeDatasets/wildlife-datasets.git@develop
+wildlife-datasets @ git+https://github.com/WildlifeDatasets/wildlife-datasets.git
