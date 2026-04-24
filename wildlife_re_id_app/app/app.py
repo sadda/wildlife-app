@@ -33,9 +33,9 @@ class App:
         self.skip_filled = True
 
         # Check whether the dataset was downloaded
-        if not dataset.is_downloaded():
+        if not self.dataset.is_downloaded():
             self.download_dataset()
-            if not dataset.is_downloaded():
+            if not self.dataset.is_downloaded():
                 self.root.destroy()
                 return
 
@@ -53,8 +53,19 @@ class App:
                 break
 
         # Load the dataset
-        dataset.load()
+        self.dataset.load()
 
+        # Build UI
+        self.idx = 0
+        self.increase = True
+        self._build_ui()
+        self._bind_keys()
+        self._initialize_answers(df)
+        self._check_answers(df)
+        self._initial_load()
+        self._reset_i_lr()
+
+    def _initialize_answers(self, df):
         # Load the answer data
         if os.path.exists(ANS_CSV):
             self.answers = pd.read_csv(ANS_CSV)
@@ -65,22 +76,19 @@ class App:
             self.answers["answer"] = None
             self.answers["time"] = 0.0
 
-        # Set the variables
-        self.idx = 0
-        self.increase = True
-        self._build_ui()
-        self._bind_keys()
+        # Verify the segmentation data
+        self.answers["index1"] = self.answers["image_id1"].apply(self.dataset.get_index_query)
+        self.answers["index2"] = self.answers["image_id2"].apply(self.dataset.get_index_database)
 
+    def _check_answers(self, df):
         # Verify the answer data
-        columns1 = self.answers.columns.difference({"answer", "time"})
+        columns1 = self.answers.columns.difference({"answer", "time", "index1", "index2"})
         columns2 = df.columns
         if set(columns1) != set(columns2) or not self.answers[columns1].equals(df[columns1]):
             messagebox.showinfo("Info", f"File {ANS_CSV} has wrong format. It may help to delete it.")
             self.close_app()
 
-        # Verify the segmentation data
-        self.answers["index1"] = self.answers["image_id1"].apply(dataset.get_index_query)
-        self.answers["index2"] = self.answers["image_id2"].apply(dataset.get_index_database)
+    def _initial_load(self):
         idx_null = self.answers[["index1", "index2"]].isnull()
         if idx_null.any().any():
             messagebox.showinfo("Info", "Some entries are mismatched. Try to download segmentation of dataset.")
@@ -88,8 +96,6 @@ class App:
             # Load the first couple of images
             self._initialize_skipping()
             self.load_row()
-
-        self._reset_i_lr()
 
     def _actions(self) -> list[tuple[str, str | None, Callable, int, int]]:
         return [
