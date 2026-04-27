@@ -110,7 +110,7 @@ class TurtlewatchEgypt(WildlifeDataset):
         dataset_kwargs_citizen = {"load_label": False}
         dataset_kwargs_master = {"load_label": False, "check_files": False, "img_load": "bbox"}
 
-        database_query_matching = False
+        database_query_matching = True
         self.query = TurtlewatchEgypt_Citizen(self.root_citizen, database_query_matching, dataset_kwargs=dataset_kwargs_citizen).dataset
         self.database = TurtlewatchEgypt_Master(
             self.root_heads,
