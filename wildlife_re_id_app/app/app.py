@@ -271,7 +271,8 @@ class App:
                     raise RuntimeError(f"Download failed for {base_name}")
                 if not (os.path.exists(path) and filecmp.cmp(path, path_tmp, shallow=False)):
                     path_dir = os.path.dirname(path)
-                    os.makedirs(path_dir, exist_ok=True) 
+                    if path_dir != "":
+                        os.makedirs(path_dir, exist_ok=True) 
                     os.replace(path_tmp, path)
                     replaced = True
         if replaced:
