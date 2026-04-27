@@ -105,9 +105,9 @@ class App:
             ("Previous (A)", "a", self.on_prev, 1, 0),
             ("Next (S)", "s", self.on_next, 1, 1),
             ("Next body part", None, self.next_body_part, 1, 2),
-            ("Download dataset", None, self.download_dataset, 2, 0),
-            ("Download segmentation", None, self.download_segmentation, 2, 1),
-            ("Download verification", None, self.download_verification, 2, 2),
+            ("Download dataset", None, self.download_dataset_close, 2, 0),
+            ("Download segmentation", None, self.download_segmentation_close, 2, 1),
+            ("Download verification", None, self.download_verification_close, 2, 2),
             ("Toggle heads left (R)", "r", self.on_toggle_left, 0, 3),
             ("Toggle heads right (F)", "f", self.on_toggle_right, 1, 3),
             ("Reset (V)", "v", self.on_reset, 2, 3),
@@ -239,11 +239,10 @@ class App:
     def download_dataset(self, event=None) -> None:
         confirm = messagebox.askyesno(
             title="Download dataset",
-            message="Download may take tens of minutes. Download the dataset now? Do not close the app please. It will close automatically.",
+            message="Download may take tens of minutes. Download the dataset now? Do not close the app please. It may close automatically.",
         )
         if confirm:
             self.dataset.download_dataset()
-            self.close_app()
 
     def next_body_part(self) -> None:
         self.skip_filled = True
@@ -254,44 +253,54 @@ class App:
         self.next()
 
     # TODO: handle if internet not connected
-    def _download_files(self, paths: list[str], urls: list[str]) -> None:
+    def _download_files(self, paths: list[str], urls: list[str]) -> bool:
         confirm = messagebox.askyesno(
-            title="Download", message="Download the file now? Do not close the app please. It will close automatically."
+            title="Download", message="Download the file now? Do not close the app please. It may close automatically."
         )
-        if not confirm:
-            return
-
         replaced = False
-        for path, url in zip(paths, urls):
-            base_name = os.path.basename(path)
-            with tempfile.TemporaryDirectory() as tmpdir:
-                path_tmp = os.path.join(tmpdir, base_name)
-                download_file(url, path_tmp)
-                if not os.path.exists(path_tmp):
-                    raise RuntimeError(f"Download failed for {base_name}")
-                if not (os.path.exists(path) and filecmp.cmp(path, path_tmp, shallow=False)):
-                    path_dir = os.path.dirname(path)
-                    if path_dir != "":
-                        os.makedirs(path_dir, exist_ok=True) 
-                    os.replace(path_tmp, path)
-                    replaced = True
-        if replaced:
-            messagebox.showinfo("Info", "The file is already the newest one.")
-            self._reset_time()
-        else:
-            self.close_app(message="The file has been downloaded. The application will now close.")
+        if confirm:
+            for path, url in zip(paths, urls):
+                base_name = os.path.basename(path)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    path_tmp = os.path.join(tmpdir, base_name)
+                    download_file(url, path_tmp)
+                    if not os.path.exists(path_tmp):
+                        raise RuntimeError(f"Download failed for {base_name}")
+                    if not (os.path.exists(path) and filecmp.cmp(path, path_tmp, shallow=False)):
+                        path_dir = os.path.dirname(path)
+                        if path_dir != "":
+                            os.makedirs(path_dir, exist_ok=True) 
+                        os.replace(path_tmp, path)
+                        replaced = True
+        self._reset_time()
+        return replaced
 
-    def download_segmentation(self) -> None:
+    def download_segmentation(self) -> bool:
         urls, paths = self.dataset.get_segmentation_files()
-        self._download_files(paths, urls)
+        return self._download_files(paths, urls)
 
-    def download_verification(self) -> None:
+    def download_verification(self) -> bool:
         assert self.dataset.verification_url is not None
-        self._download_files([DATA_CSV], [self.dataset.verification_url])
+        return self._download_files([DATA_CSV], [self.dataset.verification_url])
 
-    def close_app(self, message: str = "The application will now close.") -> None:
-        messagebox.showinfo("Exit", message)
-        self.root.destroy()
+    def download_segmentation_close(self) -> None:
+        replaced = self.download_segmentation()
+        self.close_app(ignore=not replaced)
+
+    def download_verification_close(self) -> None:
+        replaced = self.download_verification()
+        self.close_app(ignore=not replaced)
+
+    def download_dataset_close(self) -> None:
+        self.download_dataset()
+        self.close_app()
+
+    def close_app(self, ignore: bool = False) -> None:
+        if not ignore:
+            messagebox.showinfo("Exit", "The application will now close.")
+            self.root.destroy()
+        else:
+            messagebox.showinfo("Info", "The file is the newest one. No need to close.")
 
     def _reset_i_lr(self) -> None:
         self.i_l = 0
