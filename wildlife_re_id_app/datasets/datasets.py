@@ -65,6 +65,8 @@ class TurtlesOfSMSRC(WildlifeDataset):
     def load(self) -> None:
         replace_identity = []
         if self.matching_encounters_path is not None:
+            if not os.path.exists(self.matching_encounters_path):
+                raise FileNotFoundError(f"Matching encounters file not found: {self.matching_encounters_path}")
             with open(self.matching_encounters_path) as f:
                 replace_identity = ast.literal_eval(f.read())
         self.query = self.dataset_wd(
