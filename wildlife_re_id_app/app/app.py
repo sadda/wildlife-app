@@ -133,10 +133,14 @@ class App:
 
         self.encounter_var_l = tk.StringVar()
         self.encounter_var_r = tk.StringVar()
-        self.encounter_label_l = ttk.Label(self.img_frame, textvariable=self.encounter_var_l)
-        self.encounter_label_r = ttk.Label(self.img_frame, textvariable=self.encounter_var_r)
-        self.encounter_label_l.grid(row=0, column=0, padx=5)
-        self.encounter_label_r.grid(row=0, column=1, padx=5)
+        self.encounter_label_l = ttk.Entry(
+            self.img_frame, textvariable=self.encounter_var_l, state="readonly", justify="center"
+        )
+        self.encounter_label_r = ttk.Entry(
+            self.img_frame, textvariable=self.encounter_var_r, state="readonly", justify="center"
+        )
+        self.encounter_label_l.grid(row=0, column=0, padx=5, sticky="ew")
+        self.encounter_label_r.grid(row=0, column=1, padx=5, sticky="ew")
 
         self.canvas_l = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
         self.canvas_r = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
