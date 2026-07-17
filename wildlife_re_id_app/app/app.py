@@ -54,6 +54,9 @@ class App:
 
         # Load the dataset
         self.dataset.load()
+        assert self.dataset.query is not None
+        self.n_encounters = self.dataset.query.metadata["encounter_id"].nunique()
+        self.n_identities = self.dataset.query.metadata["identity"].nunique()
 
         # Build UI
         self.idx = 0
@@ -122,10 +125,17 @@ class App:
         self.img_frame = ttk.Frame(self.main_frame)
         self.img_frame.pack(pady=(0, 10))
 
+        self.encounter_var_l = tk.StringVar()
+        self.encounter_var_r = tk.StringVar()
+        self.encounter_label_l = ttk.Label(self.img_frame, textvariable=self.encounter_var_l)
+        self.encounter_label_r = ttk.Label(self.img_frame, textvariable=self.encounter_var_r)
+        self.encounter_label_l.grid(row=0, column=0, padx=5)
+        self.encounter_label_r.grid(row=0, column=1, padx=5)
+
         self.canvas_l = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
         self.canvas_r = tk.Canvas(self.img_frame, width=CANVAS_SIZE, height=CANVAS_SIZE)
-        self.canvas_l.grid(row=0, column=0, padx=5)
-        self.canvas_r.grid(row=0, column=1, padx=5)
+        self.canvas_l.grid(row=1, column=0, padx=5)
+        self.canvas_r.grid(row=1, column=1, padx=5)
 
         # Counter frame
         self.counter_var = tk.StringVar()
@@ -193,7 +203,10 @@ class App:
         # TODO: add more information?
         self.text_box.config(state="normal")
         self.text_box.delete("1.0", "end")
-        for i, (matching_part, answers_subset) in enumerate(self.answers.groupby("matching_part")):
+        self.text_box.insert(
+            "1.0", f"DATASET: {self.n_encounters} ENCOUNTERS, {self.n_identities} UNIQUE IDENTITIES.\n\n"
+        )
+        for matching_part, answers_subset in self.answers.groupby("matching_part"):
             assert isinstance(matching_part, str)
             name = matching_part.upper()
             done = ~answers_subset["answer"].isnull()
@@ -201,7 +214,7 @@ class App:
             n = len(answers_subset)
             n_done = done.sum()
 
-            self.text_box.insert(f"{i + 1}.0", f"{name} ({n}): done {n_done}.\n")
+            self.text_box.insert("end", f"{name} ({n}): done {n_done}.\n")
         self.text_box.config(state="disabled")
 
     def on_same(self, event=None) -> None:
@@ -454,7 +467,12 @@ class App:
             self.canvas_r.create_image(200, 200, image=self.tk_img_r)
         else:
             raise ValueError("Position must be l or r.")
-        
+
+    def _update_encounter_labels(self) -> None:
+        row = self.answers.iloc[self.idx]
+        self.encounter_var_l.set(f"Encounter: {row['encounter1']}")
+        self.encounter_var_r.set(f"Encounter: {row['encounter2']}")
+
     def load_row(self) -> None:
         if not (0 <= self.idx < len(self.answers)):
             if self.skip_filled:
@@ -482,6 +500,7 @@ class App:
 
         self._show_image(img1, "l")
         self._show_image(img2, "r")
+        self._update_encounter_labels()
 
         self.skip_filled = False
         self._set_text()
