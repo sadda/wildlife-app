@@ -68,6 +68,12 @@ class App:
         self._initial_load()
         self._reset_i_lr()
 
+        # A messagebox shown earlier (e.g. during verification data download) runs its own
+        # event loop before mainloop() starts and can leave the OS keyboard focus off this
+        # window, silently breaking the key bindings. Reclaim it now that the UI is built.
+        self.root.lift()
+        self.root.focus_force()
+
     def _initialize_answers(self, df):
         # Load the answer data
         if os.path.exists(ANS_CSV):
