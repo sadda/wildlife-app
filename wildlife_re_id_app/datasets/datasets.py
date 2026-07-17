@@ -1,3 +1,4 @@
+import ast
 import os
 
 import pandas as pd
@@ -46,8 +47,9 @@ class TurtlesOfSMSRC(WildlifeDataset):
         "https://raw.githubusercontent.com/sadda/wildlife-labels/refs/heads/main/TurtlesOfSMSRC/verification_data.csv"
     )
 
-    def __init__(self, root: str) -> None:
+    def __init__(self, root: str, matching_encounters_path: str | None = None) -> None:
         self.root = root
+        self.matching_encounters_path = matching_encounters_path
 
     def download_dataset(self) -> None:
         self.dataset_wd.get_data(self.root)
@@ -55,13 +57,19 @@ class TurtlesOfSMSRC(WildlifeDataset):
     def is_downloaded(self) -> bool:
         file_name = os.path.join(self.root, "metadata.csv")
         return os.path.exists(file_name)
-    
+
     def get_segmentation_files(self) -> tuple[list[str], list[str]]:
         file_name = os.path.join(self.root, "segmentation.csv")
         return (self.segmentation_urls, [file_name])
 
     def load(self) -> None:
-        self.query = self.dataset_wd(self.root, load_segmentation=True, img_load="bbox")
+        replace_identity = []
+        if self.matching_encounters_path is not None:
+            with open(self.matching_encounters_path) as f:
+                replace_identity = ast.literal_eval(f.read())
+        self.query = self.dataset_wd(
+            self.root, load_segmentation=True, img_load="bbox", replace_identity=replace_identity
+        )
         self.database = self.query
 
 

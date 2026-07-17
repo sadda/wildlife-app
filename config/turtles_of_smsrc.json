@@ -1,6 +1,7 @@
 {
   "dataset": "TurtlesOfSMSRC",
   "kwargs": {
-    "root": "data/TurtlesOfSMSRC"
+    "root": "data/TurtlesOfSMSRC",
+    "matching_encounters_path": "data/TurtlesOfSMSRC/matching_encounters.txt"
   }
 }
